@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background-primary text-text-secondary font-sans;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, .h1 { @apply text-2xl font-semibold text-text-primary; }
+  h2, .h2 { @apply text-xl font-semibold text-text-primary; }
+  h3, .h3 { @apply text-lg font-semibold text-text-primary; }
+
+  p, .p {
+    @apply max-w-[75ch]; /* Optimal line length */
+  }
+
+  a {
+    @apply text-accent hover:underline;
+  }
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background-primary;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-border-subtle;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-border-secondary;
+}
+
+/* Micro-Accent Focus Outline */
+*:focus-visible {
+  outline: 2px solid;
+  @apply outline-accent-focus;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none;
+}
