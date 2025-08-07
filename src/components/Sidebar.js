@@ -1,6 +1,32 @@
 import React, { useState, useCallback } from 'react';
-import { Plus, Settings, BookOpen, Trash2, Edit2, Check, X, Menu, XCircle } from 'lucide-react';
+import { Plus, Settings, BookOpen, Check, X } from 'lucide-react';
 import PropTypes from 'prop-types';
+
+// Bootstrap Icons as React components
+const LayoutSidebarInsetReverseIcon = ({ size = 20, className = "" }) => (
+  <svg width={size} height={size} fill="currentColor" className={className} viewBox="0 0 16 16">
+    <path d="M2 2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H2zm12-1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h12zM13 4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1V4z"/>
+  </svg>
+);
+
+const ArrowsExpandVerticalIcon = ({ size = 20, className = "" }) => (
+  <svg width={size} height={size} fill="currentColor" className={className} viewBox="0 0 16 16">
+    <path fillRule="evenodd" d="m7.646 4.646-3 3a.5.5 0 0 0 .708.708L8 5.707l2.646 2.647a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0zM8 10.293 5.354 7.646a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8 10.293z"/>
+  </svg>
+);
+
+const PencilSquareIcon = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} fill="currentColor" className={className} viewBox="0 0 16 16">
+    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+    <path fillRule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+  </svg>
+);
+
+const Trash3Icon = ({ size = 16, className = "" }) => (
+  <svg width={size} height={size} fill="currentColor" className={className} viewBox="0 0 16 16">
+    <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
+  </svg>
+);
 
 const Sidebar = React.memo(({
   isCollapsed,
@@ -43,21 +69,47 @@ const Sidebar = React.memo(({
       ${isCollapsed ? 'w-16' : 'w-64'}`}>
       
       <div className="flex items-center justify-between p-4 border-b border-border-subtle h-20">
-        {!isCollapsed && <h1 className="text-lg font-semibold">AusLex</h1>}
-        <button 
-          onClick={() => setIsCollapsed(!isCollapsed)} 
-          className="p-1 hover:text-accent"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-expanded={!isCollapsed}
-        >
-          {isCollapsed ? <Menu /> : <XCircle />}
-        </button>
+        {!isCollapsed && (
+          <div className="flex items-center gap-2">
+            <img src="/logo.svg" alt="AusLex Logo" className="w-6 h-6" />
+            <h1 className="text-lg font-semibold">AusLex</h1>
+          </div>
+        )}
+        {isCollapsed && (
+          <div className="group relative w-full flex justify-center">
+            <img src="/logo.svg" alt="AusLex Logo" className="w-6 h-6 cursor-pointer" onClick={() => setIsCollapsed(false)} />
+            <button 
+              onClick={() => setIsCollapsed(false)}
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-center text-accent transition-opacity duration-200"
+              aria-label="Expand sidebar"
+            >
+              <ArrowsExpandVerticalIcon size={16} />
+            </button>
+          </div>
+        )}
+        {!isCollapsed && (
+          <button 
+            onClick={() => setIsCollapsed(true)} 
+            className="p-1 hover:text-accent"
+            aria-label="Collapse sidebar"
+            aria-expanded={!isCollapsed}
+          >
+            <LayoutSidebarInsetReverseIcon />
+          </button>
+        )}
       </div>
 
       <div className="p-2">
         <button 
-          onClick={onNewChat} 
-          className="w-full flex items-center gap-2 p-2 rounded hover:bg-border-subtle"
+          onClick={() => {
+            if (isCollapsed) {
+              setIsCollapsed(false);
+            }
+            onNewChat();
+          }} 
+          className={`w-full flex items-center p-2 rounded hover:bg-border-subtle ${
+            isCollapsed ? 'justify-center' : 'gap-2'
+          }`}
           aria-label="Start new chat"
         >
           <Plus size={20} />
@@ -66,8 +118,10 @@ const Sidebar = React.memo(({
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2 space-y-1">
-        <span className={`px-2 text-xs font-semibold text-text-placeholder ${isCollapsed && 'hidden'}`}>History</span>
-        {chats.map(chat => (
+        {!isCollapsed && (
+          <>
+            <span className="px-2 text-xs font-semibold text-text-placeholder">History</span>
+            {chats.map(chat => (
           <div key={chat.id} className={`group flex items-center justify-between p-2 rounded cursor-pointer
             ${activeChatId === chat.id ? 'bg-border-subtle' : 'hover:bg-border-subtle'}`}
             onClick={() => onSelectChat(chat.id)}>
@@ -118,7 +172,7 @@ const Sidebar = React.memo(({
                       aria-label={`Edit ${chat.title}`}
                       tabIndex={0}
                     >
-                      <Edit2 size={16} />
+                      <PencilSquareIcon size={16} />
                     </button>
                     <button 
                       onClick={(e) => handleDelete(e, chat.id)} 
@@ -126,14 +180,16 @@ const Sidebar = React.memo(({
                       aria-label={`Delete ${chat.title}`}
                       tabIndex={0}
                     >
-                      <Trash2 size={16} />
+                      <Trash3Icon size={16} />
                     </button>
                   </>
                 )}
               </div>
             )}
           </div>
-        ))}
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="p-2 border-t border-border-subtle">

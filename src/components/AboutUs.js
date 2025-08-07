@@ -5,7 +5,7 @@ const Section = ({ title, children }) => (
     <h2 className="h2 border-b-1 border-border-subtle pb-4 mb-6">
       {title}
     </h2>
-    <div className="font-serif text-text-secondary leading-relaxed space-y-5 max-w-[75ch]">
+    <div className="font-sans text-text-secondary leading-relaxed space-y-5 max-w-[75ch]">
       {children}
     </div>
   </section>

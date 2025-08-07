@@ -52,3 +52,17 @@
 *:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Typewriter Animation Styles */
+.console-container {
+  display: block;
+  position: relative;
+  text-align: center;
+}
+
+.console-underscore {
+  display: inline-block;
+  position: relative;
+  font-weight: bold;
+  margin-left: 2px;
+}

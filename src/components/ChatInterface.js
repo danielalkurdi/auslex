@@ -3,22 +3,137 @@ import { Send, Loader2 } from 'lucide-react';
 import Message from './Message';
 import PropTypes from 'prop-types';
 
-const welcomeMessages = [
-  "Ready when you are.",
-  "Ask me anything about Australian law.",
-  "How can I help you today?",
-  "What legal question is on your mind?",
-  "Please enter your legal query below.",
-];
+// Typewriter Animation Component
+const TypewriterText = ({ messages, className }) => {
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [currentText, setCurrentText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showCursor, setShowCursor] = useState(true);
+  const typeSpeedRef = useRef(120);
 
-const InputArea = React.memo(({ inputMessage, setInputMessage, handleSubmit, handleKeyDown, isLoading, textareaRef }) => (
-  <div className="bg-background-primary pt-4 pb-6 sticky bottom-0">
-    <div className="w-full max-w-3xl mx-auto">
+  useEffect(() => {
+    const typewriterEffect = () => {
+      const currentMessage = messages[currentMessageIndex];
+      
+      if (!isDeleting) {
+        // Typing forward
+        if (currentText.length < currentMessage.length) {
+          setCurrentText(currentMessage.substring(0, currentText.length + 1));
+          typeSpeedRef.current = 120;
+        } else {
+          // Message complete, wait then start deleting
+          setTimeout(() => setIsDeleting(true), 1000);
+        }
+      } else {
+        // Deleting backward
+        if (currentText.length > 0) {
+          setCurrentText(currentMessage.substring(0, currentText.length - 1));
+          typeSpeedRef.current = 60;
+        } else {
+          // Deletion complete, move to next message
+          setIsDeleting(false);
+          setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
+        }
+      }
+    };
+
+    const timer = setTimeout(typewriterEffect, typeSpeedRef.current);
+    return () => clearTimeout(timer);
+  }, [currentText, isDeleting, currentMessageIndex, messages]);
+
+  useEffect(() => {
+    // Cursor blinking effect
+    const cursorTimer = setInterval(() => {
+      setShowCursor(prev => !prev);
+    }, 400);
+    
+    return () => clearInterval(cursorTimer);
+  }, []);
+
+  return (
+    <div className="console-container">
+      <h1 className={`${className} text-white`}>
+        {currentText}
+        <span 
+          className={`console-underscore ${showCursor ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100`}
+        >
+          _
+        </span>
+      </h1>
+    </div>
+  );
+};
+
+// Enhanced welcome message system
+const getContextualInfo = () => {
+  const timeOfDay = new Date().getHours();
+  const dayOfWeek = new Date().getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const userAgent = navigator.userAgent;
+  const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const isAustralianTZ = timeZone.includes('Australia');
+  
+  return { timeOfDay, isWeekend, isMobile, isAustralianTZ };
+};
+
+const generateWelcomeMessages = () => {
+  const { timeOfDay, isWeekend, isMobile, isAustralianTZ } = getContextualInfo();
+  
+  const timeGreetings = [
+    timeOfDay < 12 ? "Good morning" : timeOfDay < 17 ? "Good afternoon" : "Good evening",
+    timeOfDay < 6 ? "Working late" : timeOfDay > 22 ? "Burning the midnight oil" : null
+  ].filter(Boolean);
+
+  const contextualMessages = [
+    // Time-based messages
+    isWeekend ? "Weekend legal research?" : null,
+    timeOfDay > 22 || timeOfDay < 6 ? "Legal questions don't keep business hours" : null,
+    
+    // Location-based messages  
+    isAustralianTZ ? "Your Australian legal AI assistant is ready" : "Australian law from anywhere in the world",
+    
+    // Device-based messages
+    isMobile ? "Mobile-friendly legal guidance at your fingertips" : null,
+    
+    // General encouraging messages
+    "Every legal question deserves a thorough answer",
+    "Australian law made accessible",
+    "Ready to explore Australian legal frameworks",
+    "Your digital legal research companion",
+    "Where legal expertise meets modern AI",
+    "Legal clarity in an often complex system",
+  ].filter(Boolean);
+
+  // Create multiple messages for typewriter rotation
+  const messages = [];
+  
+  // Add greeting + message combinations
+  if (timeGreetings.length > 0) {
+    const greeting = timeGreetings[0];
+    const randomMessage = contextualMessages[Math.floor(Math.random() * contextualMessages.length)];
+    messages.push(`${greeting}! ${randomMessage}`);
+  }
+  
+  // Add 2-3 more standalone contextual messages
+  const shuffled = [...contextualMessages].sort(() => 0.5 - Math.random());
+  messages.push(...shuffled.slice(0, 2));
+  
+  return messages.length > 0 ? messages : ["Ready to help with Australian law"];
+};
+
+const InputArea = React.memo(({ inputMessage, setInputMessage, handleSubmit, handleKeyDown, isLoading, textareaRef, isFloating = false }) => (
+  <div className={isFloating ? "w-full" : "bg-background-primary pt-4 pb-6 sticky bottom-0"}>
+    <div className={isFloating ? "w-full" : "w-full max-w-3xl mx-auto"}>
       <div className="relative" onKeyDown={handleKeyDown}>
-        <div className="flex items-center gap-2 bg-background-secondary rounded-full p-3 border-1 border-border-subtle focus-within:border-border-secondary transition-colors duration-200">
+        <div className={`
+          flex items-center gap-3 bg-background-secondary rounded-full px-5 py-4 border-1 border-border-subtle focus-within:border-border-secondary transition-colors duration-200
+          ${isFloating ? 'shadow-lg' : ''}
+        `}>
           <textarea
             ref={textareaRef}
-            onInput={(e) => setInputMessage(e.target.value)}
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask anything..."
             className="flex-1 w-full bg-transparent border-none outline-none resize-none appearance-none text-text-primary placeholder-text-placeholder focus:outline-none focus-visible:outline-none"
@@ -51,26 +166,22 @@ InputArea.propTypes = {
   handleSubmit: PropTypes.func.isRequired,
   handleKeyDown: PropTypes.func.isRequired,
   isLoading: PropTypes.bool.isRequired,
-  textareaRef: PropTypes.object.isRequired
+  textareaRef: PropTypes.object.isRequired,
+  isFloating: PropTypes.bool
 };
 
 InputArea.displayName = 'InputArea';
 
 const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messagesEndRef }) => {
   const [inputMessage, setInputMessage] = useState('');
-  const [welcomeMessage, setWelcomeMessage] = useState('');
   const textareaRef = useRef(null);
 
-  const welcomeMessageMemo = useMemo(() => {
+  const welcomeMessages = useMemo(() => {
     if (messages.length === 0) {
-      return welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+      return generateWelcomeMessages();
     }
-    return '';
+    return [];
   }, [messages.length]);
-
-  useEffect(() => {
-    setWelcomeMessage(welcomeMessageMemo);
-  }, [welcomeMessageMemo]);
 
 
 
@@ -79,9 +190,6 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
     if (inputMessage.trim() && !isLoading) {
       onSendMessage(inputMessage);
       setInputMessage('');
-      if (textareaRef.current) {
-        textareaRef.current.value = '';
-      }
     }
   }, [inputMessage, isLoading, onSendMessage]);
 
@@ -95,35 +203,58 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
 
   return (
     <div className="h-full flex flex-col bg-background-primary">
-      <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center p-6">
-            <h1 className="text-3xl font-semibold text-text-primary">{welcomeMessage}</h1>
+      {messages.length === 0 ? (
+        // Empty state with centered input
+        <div className="h-full flex flex-col items-center justify-center p-6 relative">
+          {welcomeMessages.length > 0 && (
+            <TypewriterText 
+              messages={welcomeMessages} 
+              className="text-3xl font-semibold mb-8 min-h-[3rem]"
+            />
+          )}
+          <div className="w-full max-w-2xl">
+            <InputArea 
+              inputMessage={inputMessage}
+              setInputMessage={setInputMessage}
+              handleSubmit={handleSubmit}
+              handleKeyDown={handleKeyDown}
+              isLoading={isLoading}
+              textareaRef={textareaRef}
+              isFloating={true}
+            />
           </div>
-        ) : (
-          <div className="space-y-10 py-8 max-w-3xl mx-auto w-full px-6">
-            {messages.map((message, index) => (
-              <Message key={`${message.id}-${index}`} message={message} />
-            ))}
-            {isLoading && (
-              <div className="flex items-center gap-3 px-1 animate-fade-in">
-                <Loader2 className="w-5 h-5 text-text-placeholder animate-slow-spin" />
-                <span className="text-text-placeholder text-sm">AusLex is thinking...</span>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+        </div>
+      ) : (
+        // Chat state with messages and bottom input
+        <>
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-4 py-6 max-w-4xl mx-auto w-full px-4">
+              {messages.map((message) => (
+                <Message key={message.id} message={message} />
+              ))}
+              {isLoading && (
+                <div className="flex justify-start animate-fade-in">
+                  <div className="flex items-center gap-2 text-text-placeholder text-base">
+                    <Loader2 className="w-4 h-4 animate-slow-spin" />
+                    <span>AusLex is thinking...</span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
-        )}
-      </div>
-      
-      <InputArea 
-        inputMessage={inputMessage}
-        setInputMessage={setInputMessage}
-        handleSubmit={handleSubmit}
-        handleKeyDown={handleKeyDown}
-        isLoading={isLoading}
-        textareaRef={textareaRef}
-      />
+          
+          <InputArea 
+            inputMessage={inputMessage}
+            setInputMessage={setInputMessage}
+            handleSubmit={handleSubmit}
+            handleKeyDown={handleKeyDown}
+            isLoading={isLoading}
+            textareaRef={textareaRef}
+            isFloating={false}
+          />
+        </>
+      )}
     </div>
   );
 });

@@ -1,0 +1,16 @@
+{
+  "short_name": "AusLex",
+  "name": "AusLex - Australian Legal AI",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#ce9a54",
+  "background_color": "#0d0d0d",
+  "description": "Australian Legal AI - Fine-tuned language model for Australian legal domain"
+}

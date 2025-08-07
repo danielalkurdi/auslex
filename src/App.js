@@ -20,11 +20,20 @@ function App() {
   });
 
   const messagesEndRef = useRef(null);
+  const sendingRef = useRef(false);
 
   useEffect(() => {
     const savedChats = localStorage.getItem('chats');
     if (savedChats) {
-      setChats(JSON.parse(savedChats));
+      const parsedChats = JSON.parse(savedChats);
+      // Remove any duplicate chats that might exist in localStorage
+      const uniqueChats = parsedChats.reduce((acc, chat) => {
+        if (!acc.some(existing => existing.id === chat.id)) {
+          acc.push(chat);
+        }
+        return acc;
+      }, []);
+      setChats(uniqueChats);
     }
   }, []);
 
@@ -41,14 +50,16 @@ function App() {
   }, [chats, activeChatId]);
   
   const handleNewChat = useCallback(() => {
+    const newChatId = uuidv4();
     const newChat = {
-      id: uuidv4(),
+      id: newChatId,
       title: 'New Chat',
       messages: [],
       timestamp: new Date().toISOString(),
     };
+    
     setChats(prev => [newChat, ...prev]);
-    setActiveChatId(newChat.id);
+    setActiveChatId(newChatId);
     setCurrentPage('chat');
   }, []);
 
@@ -71,30 +82,37 @@ function App() {
   }, []);
 
   const handleSendMessage = async (message) => {
-    if (!message.trim()) return;
-
+    if (!message.trim() || sendingRef.current) return;
+    
+    sendingRef.current = true;
     let currentChatId = activeChatId;
+    
+    // Create new chat if needed
     if (!currentChatId) {
+      const newChatId = uuidv4();
       const newChat = {
-        id: uuidv4(),
-        title: message.substring(0, 30), // Use the first 30 chars of the message as the title
+        id: newChatId,
+        title: message.substring(0, 30),
         messages: [],
         timestamp: new Date().toISOString(),
       };
+      
       setChats(prev => [newChat, ...prev]);
-      setActiveChatId(newChat.id);
-      currentChatId = newChat.id;
+      setActiveChatId(newChatId);
+      currentChatId = newChatId;
     }
 
+    const userMessageId = uuidv4();
     const userMessage = {
-      id: uuidv4(),
+      id: userMessageId,
       content: message,
       role: 'user',
       timestamp: new Date().toISOString(),
     };
     
-    setChats(prev => prev.map(chat =>
-      chat.id === currentChatId
+    // Add user message
+    setChats(prev => prev.map(chat => 
+      chat.id === currentChatId 
         ? { ...chat, messages: [...chat.messages, userMessage] }
         : chat
     ));
@@ -151,6 +169,7 @@ function App() {
         timestamp: new Date().toISOString(),
         isError: true,
       };
+      
       setChats(prev => prev.map(chat =>
         chat.id === currentChatId
           ? { ...chat, messages: [...chat.messages, errorMessage] }
@@ -158,6 +177,7 @@ function App() {
       ));
     } finally {
       setIsLoading(false);
+      sendingRef.current = false;
     }
   };
 
