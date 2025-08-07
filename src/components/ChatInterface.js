@@ -111,11 +111,11 @@ const generateWelcomeMessages = () => {
 };
 
 const InputArea = React.memo(({ inputMessage, setInputMessage, handleSubmit, handleKeyDown, isLoading, textareaRef, isFloating = false }) => (
-  <div className={isFloating ? "w-full" : "bg-background-primary pt-4 pb-6 sticky bottom-0"}>
-    <div className={isFloating ? "w-full" : "w-full max-w-3xl mx-auto"}>
+  <div className={isFloating ? "w-full" : "bg-background-primary pt-4 pb-4 sm:pb-6 sticky bottom-0"}>
+    <div className={isFloating ? "w-full" : "w-full max-w-3xl mx-auto px-3 sm:px-4"}>
       <div className="relative" onKeyDown={handleKeyDown}>
         <div className={`
-          flex items-center gap-3 bg-background-secondary rounded-full px-5 py-4 border-1 border-border-subtle focus-within:border-border-secondary transition-colors duration-200
+          flex items-center gap-2 sm:gap-3 bg-background-secondary rounded-full px-3 sm:px-5 py-3 sm:py-4 border-1 border-border-subtle focus-within:border-border-secondary transition-colors duration-200
           ${isFloating ? 'shadow-lg' : ''}
         `}>
           <textarea
@@ -124,7 +124,7 @@ const InputArea = React.memo(({ inputMessage, setInputMessage, handleSubmit, han
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask anything..."
-            className="flex-1 w-full bg-transparent border-none outline-none resize-none appearance-none text-text-primary placeholder-text-placeholder focus:outline-none focus-visible:outline-none"
+            className="flex-1 w-full bg-transparent border-none outline-none resize-none appearance-none text-sm sm:text-base text-text-primary placeholder-text-placeholder focus:outline-none focus-visible:outline-none"
             autoFocus
             rows="1"
             disabled={isLoading}
@@ -133,14 +133,14 @@ const InputArea = React.memo(({ inputMessage, setInputMessage, handleSubmit, han
           />
           <button
             onClick={handleSubmit}
-            className="w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center transition-colors duration-150
+            className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full flex items-center justify-center transition-colors duration-150
                        bg-gray-700 text-white
                        hover:bg-gray-600
                        disabled:bg-disabled-bg disabled:text-disabled-text disabled:cursor-not-allowed"
             disabled={!inputMessage.trim() || isLoading}
             aria-label={isLoading ? 'Processing...' : 'Send message'}
           >
-            {isLoading ? <Loader2 className="w-5 h-5 animate-slow-spin" /> : <Send className="w-5 h-5" />}
+            {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-slow-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
         </div>
       </div>
@@ -194,14 +194,14 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
     <div className="h-full flex flex-col bg-background-primary">
       {messages.length === 0 ? (
         // Empty state with centered input
-        <div className="h-full flex flex-col items-center justify-center p-6 relative">
+        <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 relative">
           {welcomeMessages.length > 0 && (
             <TypewriterText 
               messages={welcomeMessages} 
-              className="text-3xl font-semibold mb-8 min-h-[3rem]"
+              className="text-xl sm:text-2xl md:text-3xl font-semibold mb-6 sm:mb-8 min-h-[3rem] px-4"
             />
           )}
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl px-4">
             <InputArea 
               inputMessage={inputMessage}
               setInputMessage={setInputMessage}
@@ -217,7 +217,7 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
         // Chat state with messages and bottom input
         <>
           <div className="flex-1 overflow-y-auto">
-            <div className="space-y-4 py-6 max-w-4xl mx-auto w-full px-4">
+            <div className="space-y-4 py-4 sm:py-6 max-w-4xl mx-auto w-full px-3 sm:px-4">
               {messages.map((message) => (
                 <Message key={message.id} message={message} />
               ))}

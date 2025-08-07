@@ -9,28 +9,28 @@ const Message = React.memo(({ message }) => {
   const isError = message.isError;
 
   const markdownStyles = useMemo(() => ({
-    p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
+    p: ({node, ...props}) => <p className="mb-2 sm:mb-3 last:mb-0" {...props} />,
     // eslint-disable-next-line jsx-a11y/heading-has-content
-    h1: ({node, ...props}) => <h1 className="text-xl font-semibold mb-3 text-text-primary" {...props} />,
+    h1: ({node, ...props}) => <h1 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 text-text-primary" {...props} />,
     // eslint-disable-next-line jsx-a11y/heading-has-content
-    h2: ({node, ...props}) => <h2 className="text-lg font-semibold mb-2 text-text-primary" {...props} />,
+    h2: ({node, ...props}) => <h2 className="text-base sm:text-lg font-semibold mb-2 text-text-primary" {...props} />,
     // eslint-disable-next-line jsx-a11y/heading-has-content
-    h3: ({node, ...props}) => <h3 className="text-base font-semibold mb-2 text-text-primary" {...props} />,
-    ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-3 space-y-1" {...props} />,
-    ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-3 space-y-1" {...props} />,
+    h3: ({node, ...props}) => <h3 className="text-sm sm:text-base font-semibold mb-2 text-text-primary" {...props} />,
+    ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 sm:mb-3 space-y-1" {...props} />,
+    ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 sm:mb-3 space-y-1" {...props} />,
     // eslint-disable-next-line jsx-a11y/anchor-has-content
     a: ({node, ...props}) => <a className="text-accent hover:underline" {...props} />,
     code: ({node, inline, ...props}) => 
       inline ? 
-      <code className="bg-border-subtle/20 text-text-primary px-1.5 py-0.5 rounded text-base" {...props} /> :
-      <pre className="bg-border-subtle/20 p-3 rounded overflow-x-auto text-base my-3" {...props} />,
+      <code className="bg-border-subtle/20 text-text-primary px-1 sm:px-1.5 py-0.5 rounded text-sm sm:text-base" {...props} /> :
+      <pre className="bg-border-subtle/20 p-2 sm:p-3 rounded overflow-x-auto text-sm sm:text-base my-2 sm:my-3" {...props} />,
     pre: ({node, ...props}) => <div {...props} />
   }), []);
 
   return (
     <div className={`w-full flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}>
       <div className={`
-        max-w-[80%] font-sans text-base leading-relaxed
+        max-w-[90%] sm:max-w-[80%] font-sans text-sm sm:text-base leading-relaxed
         ${isUser 
           ? 'text-text-primary text-right' 
           : 'text-text-secondary text-left'
@@ -51,7 +51,7 @@ const Message = React.memo(({ message }) => {
           />
         )}
         {isError && (
-          <p className="text-base mt-2 text-status-warning opacity-80">
+          <p className="text-sm sm:text-base mt-2 text-status-warning opacity-80">
             There was an issue processing this request. Please try again.
           </p>
         )}

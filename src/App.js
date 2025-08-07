@@ -16,6 +16,8 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [currentPage, setCurrentPage] = useState('chat');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [settings, setSettings] = useState({
     apiEndpoint: process.env.REACT_APP_API_ENDPOINT || 'http://localhost:8000',
     maxTokens: 2048,
@@ -25,6 +27,22 @@ function AppContent() {
 
   const messagesEndRef = useRef(null);
   const sendingRef = useRef(false);
+
+  // Handle window resize for mobile detection
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Auto-collapse sidebar on mobile
+      if (mobile) {
+        setIsSidebarCollapsed(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -88,7 +106,11 @@ function AppContent() {
   const handleSelectChat = useCallback((chatId) => {
     setActiveChatId(chatId);
     setCurrentPage('chat');
-  }, []);
+    // Close mobile sidebar after selection
+    if (isMobile) {
+      setIsMobileSidebarOpen(false);
+    }
+  }, [isMobile]);
 
   const handleSendMessage = async (message) => {
     if (!message.trim() || sendingRef.current) return;
@@ -193,7 +215,27 @@ function AppContent() {
   const activeChat = chats.find(chat => chat.id === activeChatId);
 
   return (
-    <div className="flex h-screen bg-background-primary text-text-primary">
+    <div className="flex h-screen bg-background-primary text-text-primary relative overflow-hidden">
+      {/* Mobile menu button */}
+      {isMobile && (
+        <button
+          onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+          className="fixed top-4 left-4 z-50 p-2 bg-background-secondary rounded-lg shadow-lg md:hidden"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
+
+      {/* Mobile overlay */}
+      {isMobile && isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
@@ -203,15 +245,27 @@ function AppContent() {
         onSelectChat={handleSelectChat}
         onDeleteChat={handleDeleteChat}
         onSaveChat={handleSaveChat}
-        onSettingsClick={() => setShowSettings(true)}
-        onAboutClick={() => setCurrentPage('about')}
+        onSettingsClick={() => {
+          setShowSettings(true);
+          setIsMobileSidebarOpen(false);
+        }}
+        onAboutClick={() => {
+          setCurrentPage('about');
+          setIsMobileSidebarOpen(false);
+        }}
         user={user}
         isAuthenticated={isAuthenticated}
-        onAuthClick={() => setShowAuthModal(true)}
+        onAuthClick={() => {
+          setShowAuthModal(true);
+          setIsMobileSidebarOpen(false);
+        }}
         onLogout={logout}
+        isMobile={isMobile}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
       />
       
-      <main className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <main className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${!isMobile ? (isSidebarCollapsed ? 'ml-16' : 'ml-64') : 'ml-0'}`}>
         {currentPage === 'chat' ? (
           <ChatInterface
             key={activeChatId} // Force re-mount on chat change

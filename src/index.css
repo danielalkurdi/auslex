@@ -8,37 +8,55 @@
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
   }
 
-  h1, .h1 { @apply text-2xl font-semibold text-text-primary; }
-  h2, .h2 { @apply text-xl font-semibold text-text-primary; }
-  h3, .h3 { @apply text-lg font-semibold text-text-primary; }
+  /* Responsive typography */
+  h1, .h1 { @apply text-xl sm:text-2xl font-semibold text-text-primary; }
+  h2, .h2 { @apply text-lg sm:text-xl font-semibold text-text-primary; }
+  h3, .h3 { @apply text-base sm:text-lg font-semibold text-text-primary; }
 
   p, .p {
-    @apply max-w-[75ch]; /* Optimal line length */
+    @apply max-w-full sm:max-w-[75ch]; /* Full width on mobile, optimal on desktop */
   }
 
   a {
     @apply text-accent hover:underline;
   }
+  
+  /* Mobile tap highlight */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
-/* Minimalist Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Minimalist Scrollbar - Hidden on mobile */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background-primary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-subtle;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border-secondary;
+  }
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-background-primary;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-border-subtle;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-border-secondary;
+/* Mobile scrollbar - native */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
 }
 
 /* Micro-Accent Focus Outline */
@@ -89,14 +107,53 @@
   transition: all 0.2s ease;
 }
 
-.citation-link:hover {
-  transform: translateY(-1px);
+/* Desktop hover effect */
+@media (min-width: 768px) {
+  .citation-link:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* Mobile touch effect */
+@media (max-width: 767px) {
+  .citation-link:active {
+    opacity: 0.8;
+  }
 }
 
 /* Citation modal backdrop */
 .citation-backdrop {
   backdrop-filter: blur(4px);
   background: rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile-specific utilities */
+@media (max-width: 767px) {
+  /* Prevent body scroll when modal is open */
+  body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+  
+  /* Ensure touch scrolling works smoothly */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Improve button tap targets on mobile */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Landscape mobile adjustments */
+@media (max-width: 767px) and (orientation: landscape) {
+  .h-screen {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
 }
 
 /* Loading spinner for slow spin */

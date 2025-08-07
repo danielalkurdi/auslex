@@ -43,6 +43,9 @@ const Sidebar = React.memo(({
   isAuthenticated,
   onAuthClick,
   onLogout,
+  isMobile,
+  isMobileSidebarOpen,
+  setIsMobileSidebarOpen,
 }) => {
   const [editingChatId, setEditingChatId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -69,17 +72,19 @@ const Sidebar = React.memo(({
   }, [onDeleteChat]);
 
   return (
-    <div className={`bg-background-secondary transition-all duration-300 ease-in-out flex flex-col fixed h-full
-      ${isCollapsed ? 'w-16' : 'w-64'}`}>
+    <div className={`bg-background-secondary transition-all duration-300 ease-in-out flex flex-col h-full
+      ${isMobile ? 'fixed left-0 top-0 z-50 w-64' : 'fixed'}
+      ${isMobile && !isMobileSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+      ${!isMobile && isCollapsed ? 'w-16' : 'w-64'}`}>
       
       <div className="flex items-center justify-between p-4 border-b border-border-subtle h-20">
-        {!isCollapsed && (
+        {(isMobile || !isCollapsed) && (
           <div className="flex items-center gap-2">
             <img src="/logo.svg" alt="AusLex Logo" className="w-6 h-6" />
             <h1 className="text-lg font-semibold">AusLex</h1>
           </div>
         )}
-        {isCollapsed && (
+        {!isMobile && isCollapsed && (
           <div className="group relative w-full flex justify-center">
             <img src="/logo.svg" alt="AusLex Logo" className="w-6 h-6 cursor-pointer" onClick={() => setIsCollapsed(false)} />
             <button 
@@ -91,38 +96,51 @@ const Sidebar = React.memo(({
             </button>
           </div>
         )}
-        {!isCollapsed && (
-          <button 
-            onClick={() => setIsCollapsed(true)} 
-            className="p-1 hover:text-accent"
-            aria-label="Collapse sidebar"
-            aria-expanded={!isCollapsed}
+        {isMobile ? (
+          <button
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="p-1 hover:text-accent md:hidden"
+            aria-label="Close sidebar"
           >
-            <LayoutSidebarInsetReverseIcon />
+            <X size={20} />
           </button>
+        ) : (
+          !isCollapsed && (
+            <button 
+              onClick={() => setIsCollapsed(true)} 
+              className="p-1 hover:text-accent"
+              aria-label="Collapse sidebar"
+              aria-expanded={!isCollapsed}
+            >
+              <LayoutSidebarInsetReverseIcon />
+            </button>
+          )
         )}
       </div>
 
       <div className="p-2">
         <button 
           onClick={() => {
-            if (isCollapsed) {
+            if (!isMobile && isCollapsed) {
               setIsCollapsed(false);
             }
             onNewChat();
+            if (isMobile) {
+              setIsMobileSidebarOpen(false);
+            }
           }} 
           className={`w-full flex items-center p-2 rounded hover:bg-border-subtle ${
-            isCollapsed ? 'justify-center' : 'gap-2'
+            !isMobile && isCollapsed ? 'justify-center' : 'gap-2'
           }`}
           aria-label="Start new chat"
         >
           <Plus size={20} />
-          {!isCollapsed && <span>New Chat</span>}
+          {(isMobile || !isCollapsed) && <span>New Chat</span>}
         </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2 space-y-1">
-        {!isCollapsed && (
+        {(isMobile || !isCollapsed) && (
           <>
             <span className="px-2 text-xs font-semibold text-text-placeholder">History</span>
             {chats.map(chat => (

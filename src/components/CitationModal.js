@@ -132,9 +132,10 @@ const CitationModal = ({
    * Calculate modal position to avoid viewport edges
    */
   const calculateModalPosition = () => {
-    const modalWidth = 700;
-    const modalHeight = 550; // Increased to ensure footer is visible
-    const padding = 20;
+    const isMobile = window.innerWidth < 768;
+    const modalWidth = isMobile ? window.innerWidth - 20 : 700;
+    const modalHeight = isMobile ? window.innerHeight - 40 : 550;
+    const padding = isMobile ? 10 : 20;
 
     // Start with centered position by default
     let left = (window.innerWidth - modalWidth) / 2;
@@ -186,26 +187,26 @@ const CitationModal = ({
         ref={modalRef}
         className="fixed bg-background-secondary border border-border-subtle rounded-lg shadow-2xl overflow-hidden animate-fade-in z-50"
         style={{
-          left: `${modalPosition.left}px`,
-          top: `${modalPosition.top}px`,
-          width: 'min(700px, calc(100vw - 40px))',
-          height: 'min(550px, calc(100vh - 40px))',
-          maxWidth: 'calc(100vw - 40px)',
+          left: window.innerWidth < 768 ? '10px' : `${modalPosition.left}px`,
+          top: window.innerWidth < 768 ? '20px' : `${modalPosition.top}px`,
+          width: window.innerWidth < 768 ? 'calc(100vw - 20px)' : 'min(700px, calc(100vw - 40px))',
+          height: window.innerWidth < 768 ? 'calc(100vh - 40px)' : 'min(550px, calc(100vh - 40px))',
+          maxWidth: 'calc(100vw - 20px)',
           maxHeight: 'calc(100vh - 40px)',
           display: 'flex',
           flexDirection: 'column'
         }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-4 border-b border-border-subtle bg-background-primary/50 flex-shrink-0">
+        <div className="flex items-start justify-between p-3 sm:p-4 border-b border-border-subtle bg-background-primary/50 flex-shrink-0">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-text-primary truncate">
+            <h3 className="text-base sm:text-lg font-semibold text-text-primary truncate">
               {citation.actName}
               {citation.year && (
-                <span className="text-text-secondary ml-2">{citation.year}</span>
+                <span className="text-text-secondary ml-1 sm:ml-2">{citation.year}</span>
               )}
             </h3>
-            <div className="flex items-center gap-4 mt-1 text-sm text-text-secondary">
+            <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-text-secondary">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 bg-accent rounded-full"></span>
                 {citation.jurisdictionFull}
@@ -218,7 +219,7 @@ const CitationModal = ({
             </div>
           </div>
           
-          <div className="flex items-center gap-2 ml-4">
+          <div className="flex items-center gap-2 ml-2 sm:ml-4">
             <button
               onClick={handleCopyCitation}
               className="p-2 text-text-secondary hover:text-text-primary hover:bg-border-subtle rounded transition-colors"
@@ -347,7 +348,7 @@ const CitationModal = ({
 
         {/* Footer */}
         {austliiUrl && (
-          <div className="border-t border-border-subtle p-4 bg-background-primary/30 flex-shrink-0">
+          <div className="border-t border-border-subtle p-3 sm:p-4 bg-background-primary/30 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 text-xs text-text-placeholder">
