@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import PropTypes from 'prop-types';
+import CitationText from './CitationText';
 
 const Message = React.memo(({ message }) => {
   const isUser = message.role === 'user';
@@ -36,9 +37,19 @@ const Message = React.memo(({ message }) => {
         }
         ${isError ? 'text-status-warning' : ''}
       `}>
-        <ReactMarkdown components={markdownStyles} remarkPlugins={[remarkGfm]}>
-          {message.content}
-        </ReactMarkdown>
+        {isUser || isError ? (
+          // For user messages and errors, use regular markdown
+          <ReactMarkdown components={markdownStyles} remarkPlugins={[remarkGfm]}>
+            {message.content}
+          </ReactMarkdown>
+        ) : (
+          // For assistant messages, use CitationText to handle legal citations
+          <CitationText
+            text={message.content}
+            citationStyle="link"
+            className="prose prose-sm max-w-none"
+          />
+        )}
         {isError && (
           <p className="text-base mt-2 text-status-warning opacity-80">
             There was an issue processing this request. Please try again.

@@ -5,44 +5,32 @@ import PropTypes from 'prop-types';
 
 // Typewriter Animation Component
 const TypewriterText = ({ messages, className }) => {
-  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [currentText, setCurrentText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [showCursor, setShowCursor] = useState(true);
   const typeSpeedRef = useRef(120);
 
   useEffect(() => {
+    if (isTypingComplete) return; // Don't continue typing if complete
+    
     const typewriterEffect = () => {
-      const currentMessage = messages[currentMessageIndex];
+      const targetMessage = messages[0]; // Only use the first message
       
-      if (!isDeleting) {
+      if (currentText.length < targetMessage.length) {
         // Typing forward
-        if (currentText.length < currentMessage.length) {
-          setCurrentText(currentMessage.substring(0, currentText.length + 1));
-          typeSpeedRef.current = 120;
-        } else {
-          // Message complete, wait then start deleting
-          setTimeout(() => setIsDeleting(true), 1000);
-        }
+        setCurrentText(targetMessage.substring(0, currentText.length + 1));
       } else {
-        // Deleting backward
-        if (currentText.length > 0) {
-          setCurrentText(currentMessage.substring(0, currentText.length - 1));
-          typeSpeedRef.current = 60;
-        } else {
-          // Deletion complete, move to next message
-          setIsDeleting(false);
-          setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
-        }
+        // Message complete, stop typing
+        setIsTypingComplete(true);
       }
     };
 
     const timer = setTimeout(typewriterEffect, typeSpeedRef.current);
     return () => clearTimeout(timer);
-  }, [currentText, isDeleting, currentMessageIndex, messages]);
+  }, [currentText, isTypingComplete, messages]);
 
   useEffect(() => {
-    // Cursor blinking effect
+    // Cursor blinking effect (continues forever)
     const cursorTimer = setInterval(() => {
       setShowCursor(prev => !prev);
     }, 400);
@@ -175,6 +163,7 @@ InputArea.displayName = 'InputArea';
 const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messagesEndRef }) => {
   const [inputMessage, setInputMessage] = useState('');
   const textareaRef = useRef(null);
+
 
   const welcomeMessages = useMemo(() => {
     if (messages.length === 0) {

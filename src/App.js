@@ -4,11 +4,15 @@ import ChatInterface from './components/ChatInterface';
 import SettingsPanel from './components/SettingsPanel';
 import AboutUs from './components/AboutUs';
 import Sidebar from './components/Sidebar';
+import AuthModal from './components/AuthModal';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-function App() {
+function AppContent() {
+  const { isAuthenticated, user, login, logout, isLoading, getUserChats, updateUserChats } = useAuth();
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [currentPage, setCurrentPage] = useState('chat');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -23,23 +27,28 @@ function App() {
   const sendingRef = useRef(false);
 
   useEffect(() => {
-    const savedChats = localStorage.getItem('chats');
-    if (savedChats) {
-      const parsedChats = JSON.parse(savedChats);
-      // Remove any duplicate chats that might exist in localStorage
-      const uniqueChats = parsedChats.reduce((acc, chat) => {
+    if (isAuthenticated && !isLoading) {
+      // Load user-specific chats
+      const userChats = getUserChats();
+      const uniqueChats = userChats.reduce((acc, chat) => {
         if (!acc.some(existing => existing.id === chat.id)) {
           acc.push(chat);
         }
         return acc;
       }, []);
       setChats(uniqueChats);
+    } else if (!isAuthenticated && !isLoading) {
+      // Clear chats when not authenticated
+      setChats([]);
+      setActiveChatId(null);
     }
-  }, []);
+  }, [isAuthenticated, isLoading, getUserChats]);
 
   useEffect(() => {
-    localStorage.setItem('chats', JSON.stringify(chats));
-  }, [chats]);
+    if (isAuthenticated) {
+      updateUserChats(chats);
+    }
+  }, [chats, isAuthenticated, updateUserChats]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -116,7 +125,7 @@ function App() {
         ? { ...chat, messages: [...chat.messages, userMessage] }
         : chat
     ));
-    setIsLoading(true);
+    setIsChatLoading(true);
 
     try {
       const response = await fetch(`${settings.apiEndpoint}/chat`, {
@@ -176,7 +185,7 @@ function App() {
           : chat
       ));
     } finally {
-      setIsLoading(false);
+      setIsChatLoading(false);
       sendingRef.current = false;
     }
   };
@@ -196,6 +205,10 @@ function App() {
         onSaveChat={handleSaveChat}
         onSettingsClick={() => setShowSettings(true)}
         onAboutClick={() => setCurrentPage('about')}
+        user={user}
+        isAuthenticated={isAuthenticated}
+        onAuthClick={() => setShowAuthModal(true)}
+        onLogout={logout}
       />
       
       <main className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
@@ -204,7 +217,7 @@ function App() {
             key={activeChatId} // Force re-mount on chat change
             messages={activeChat ? activeChat.messages : []}
             onSendMessage={handleSendMessage}
-            isLoading={isLoading}
+            isLoading={isChatLoading}
             messagesEndRef={messagesEndRef}
           />
         ) : (
@@ -219,7 +232,26 @@ function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
+
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onAuthSuccess={(userData) => {
+            login(userData);
+            setShowAuthModal(false);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

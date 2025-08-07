@@ -66,3 +66,72 @@
   font-weight: bold;
   margin-left: 2px;
 }
+
+/* Citation Modal Animation */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Citation hover effects */
+.citation-link {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.citation-link:hover {
+  transform: translateY(-1px);
+}
+
+/* Citation modal backdrop */
+.citation-backdrop {
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Loading spinner for slow spin */
+@keyframes slow-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-slow-spin {
+  animation: slow-spin 2s linear infinite;
+}
+
+/* Citation styles for different types */
+.citation-legislation {
+  @apply text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300;
+  border-bottom: 1px dashed currentColor;
+}
+
+.citation-regulation {
+  @apply text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300;
+  border-bottom: 1px dashed currentColor;
+}
+
+.citation-case {
+  @apply text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300;
+  border-bottom: 1px dashed currentColor;
+}
+
+/* Citation modal responsive design */
+@media (max-width: 640px) {
+  .citation-modal {
+    @apply mx-4 max-w-[calc(100vw-2rem)];
+  }
+}

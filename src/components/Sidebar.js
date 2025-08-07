@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Plus, Settings, BookOpen, Check, X } from 'lucide-react';
+import { Plus, Settings, BookOpen, Check, X, LogIn, LogOut, User } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 // Bootstrap Icons as React components
@@ -39,6 +39,10 @@ const Sidebar = React.memo(({
   onSaveChat,
   onSettingsClick,
   onAboutClick,
+  user,
+  isAuthenticated,
+  onAuthClick,
+  onLogout,
 }) => {
   const [editingChatId, setEditingChatId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -209,6 +213,37 @@ const Sidebar = React.memo(({
           <Settings size={20} />
           {!isCollapsed && <span>Settings</span>}
         </button>
+        
+        {/* Authentication Section */}
+        {isAuthenticated ? (
+          <>
+            {!isCollapsed && (
+              <div className="px-2 py-1 border-t border-border-subtle mt-2 pt-3">
+                <div className="flex items-center gap-2 p-2 text-text-placeholder text-sm">
+                  <User size={16} />
+                  <span className="truncate">{user?.name}</span>
+                </div>
+              </div>
+            )}
+            <button 
+              onClick={onLogout} 
+              className="w-full flex items-center gap-2 p-2 rounded hover:bg-border-subtle text-status-warning hover:text-status-warning"
+              aria-label="Sign out"
+            >
+              <LogOut size={20} />
+              {!isCollapsed && <span>Sign Out</span>}
+            </button>
+          </>
+        ) : (
+          <button 
+            onClick={onAuthClick} 
+            className="w-full flex items-center gap-2 p-2 rounded hover:bg-border-subtle text-accent hover:text-accent-focus"
+            aria-label="Sign in"
+          >
+            <LogIn size={20} />
+            {!isCollapsed && <span>Sign In</span>}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -230,7 +265,11 @@ Sidebar.propTypes = {
   onDeleteChat: PropTypes.func.isRequired,
   onSaveChat: PropTypes.func.isRequired,
   onSettingsClick: PropTypes.func.isRequired,
-  onAboutClick: PropTypes.func.isRequired
+  onAboutClick: PropTypes.func.isRequired,
+  user: PropTypes.object,
+  isAuthenticated: PropTypes.bool.isRequired,
+  onAuthClick: PropTypes.func.isRequired,
+  onLogout: PropTypes.func.isRequired
 };
 
 Sidebar.displayName = 'Sidebar';
