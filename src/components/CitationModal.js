@@ -30,6 +30,28 @@ const CitationModal = ({
   const iframeRef = useRef(null);
   const { getUrlOptions } = useAustLII();
 
+  /**
+   * Load AustLII URL for citation
+   */
+  const loadAustliiUrl = useCallback(() => {
+    setIsLoading(true);
+    setIframeError(false);
+
+    try {
+      const options = getUrlOptions(citation);
+      setUrlOptions(options);
+      setSelectedUrlIndex(0);
+      setAustliiUrl(options[0]);
+      
+      console.log('Constructed AustLII URL:', options[0].url);
+    } catch (err) {
+      console.error('Error constructing AustLII URL:', err);
+      setIframeError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [citation, getUrlOptions]);
+
   // Load AustLII URL when modal opens
   useEffect(() => {
     if (isOpen && citation) {
@@ -64,28 +86,6 @@ const CitationModal = ({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isOpen, onClose]);
-
-  /**
-   * Load AustLII URL for citation
-   */
-  const loadAustliiUrl = useCallback(() => {
-    setIsLoading(true);
-    setIframeError(false);
-
-    try {
-      const options = getUrlOptions(citation);
-      setUrlOptions(options);
-      setSelectedUrlIndex(0);
-      setAustliiUrl(options[0]);
-      
-      console.log('Constructed AustLII URL:', options[0].url);
-    } catch (err) {
-      console.error('Error constructing AustLII URL:', err);
-      setIframeError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [citation, getUrlOptions]);
 
   /**
    * Handle iframe load events
