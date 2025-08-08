@@ -4,12 +4,13 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 import time
 import random
-import jwt
+import jwt as pyjwt
 import json
 import os
 import secrets
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
+from mangum import Mangum
 
 app = FastAPI(title="AusLex AI API", version="1.0.0")
 
@@ -102,12 +103,12 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = pyjwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = pyjwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
@@ -116,7 +117,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             raise HTTPException(status_code=401, detail="User not found")
             
         return users_db[user_id]
-    except jwt.PyJWTError:
+    except pyjwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # Sample legal responses for demonstration
@@ -429,8 +430,11 @@ def generate_lookup_key(act_name: str, year: str, jurisdiction: str, provision: 
     return f"{act_key}_{year}_{jurisdiction.lower()}_s_{provision.lower()}"
 
 # Vercel serverless function handler
-from mangum import Mangum
-handler = Mangum(app)
+try:
+    handler = Mangum(app)
+except Exception as e:
+    print(f"Error creating Mangum handler: {e}")
+    raise
 
 if __name__ == "__main__":
     import uvicorn
