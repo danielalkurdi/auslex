@@ -1,8 +1,43 @@
 import { VectorStore } from './vectorStore';
 import { LegalSnippet } from '../types/legal';
 import { withClient } from '../db/pg';
+// Minimal QueryResult to avoid depending on @types/pg at runtime
+type QueryResult<T> = { rows: T[] };
 
 const EMBEDDING_DIM = 3072;
+
+type PgSnippetRow = {
+  id: string;
+  text: string;
+  jurisdiction: string | null;
+  source_type: string | null;
+  court_or_publisher: string | null;
+  title: string | null;
+  citation: string | null;
+  provision: string | null;
+  paragraph: string | null;
+  url: string | null;
+  date_made: string | null;
+  date_in_force_from: string | null;
+  date_in_force_to: string | null;
+  version: string | null;
+  score?: number | null;
+};
+
+type SourceType = 'legislation' | 'regulation' | 'case' | 'guideline' | 'other';
+
+function coerceSourceType(value: string | null): SourceType {
+  switch ((value || '').toLowerCase()) {
+    case 'legislation':
+    case 'regulation':
+    case 'case':
+    case 'guideline':
+    case 'other':
+      return value!.toLowerCase() as SourceType;
+    default:
+      return 'other';
+  }
+}
 
 export class PgVectorStore implements VectorStore {
   constructor(databaseUrl: string) {}
@@ -76,7 +111,8 @@ export class PgVectorStore implements VectorStore {
       const emb = embeddings[idx];
       values.push(
         s.id,
-        emb,
+        // pgvector expects a string like "[v1,v2,...]" when binding as text
+        Array.isArray(emb) ? `[${emb.join(',')}]` : emb,
         s.text,
         s.meta.jurisdiction || null,
         s.meta.sourceType || null,
@@ -124,23 +160,23 @@ export class PgVectorStore implements VectorStore {
       ORDER BY score DESC
       LIMIT ${Math.max(1, Math.min(50, limit))}
     `;
-    const res = await withClient(c => c.query(sql, vals));
-    return res.rows.map(r => ({
+    const res = await withClient(c => c.query(sql, vals)) as QueryResult<PgSnippetRow>;
+    return res.rows.map((r: PgSnippetRow) => ({
       id: r.id,
       text: r.text,
       meta: {
-        jurisdiction: r.jurisdiction,
-        sourceType: r.source_type,
-        courtOrPublisher: r.court_or_publisher,
-        title: r.title,
-        citation: r.citation,
-        provision: r.provision,
-        paragraph: r.paragraph,
-        url: r.url,
-        dateMade: r.date_made ? String(r.date_made) : undefined,
-        dateInForceFrom: r.date_in_force_from ? String(r.date_in_force_from) : undefined,
-        dateInForceTo: r.date_in_force_to ? String(r.date_in_force_to) : null,
-        version: r.version,
+        jurisdiction: r.jurisdiction ?? "",
+        sourceType: coerceSourceType(r.source_type),
+        courtOrPublisher: r.court_or_publisher ?? undefined,
+        title: r.title ?? undefined,
+        citation: r.citation ?? undefined,
+        provision: r.provision ?? undefined,
+        paragraph: r.paragraph ?? undefined,
+        url: r.url ?? undefined,
+        dateMade: r.date_made ?? undefined,
+        dateInForceFrom: r.date_in_force_from ?? undefined,
+        dateInForceTo: r.date_in_force_to ?? null,
+        version: r.version ?? undefined,
       }
     }));
   }

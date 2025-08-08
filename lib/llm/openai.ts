@@ -43,7 +43,7 @@ export class OpenAIResponsesClient {
     responseFormat?: { type: "json_object" };
   }): Promise<{ content: any; toolCalls?: any[] }>{
     return this.withRetries(async () => {
-      const res = await this.client.responses.create({
+      const res: any = await (this.client as any).responses.create({
         model: MODELS.reasoner,
         input: [
           { role: "system", content: params.system },
@@ -54,9 +54,13 @@ export class OpenAIResponsesClient {
         response_format: params.responseFormat as any,
       } as any);
 
-      const output = res.output?.[0];
-      const toolCalls = (output?.content as any[])?.filter((c: any) => c.type === 'tool_call');
-      const firstText = (output?.content as any[])?.find((c: any) => c.type === 'output_text');
+      const output: any = res?.output?.[0];
+      const toolCalls = Array.isArray(output?.content)
+        ? (output.content as any[])?.filter((c: any) => c.type === 'tool_call')
+        : undefined;
+      const firstText = Array.isArray(output?.content)
+        ? (output.content as any[])?.find((c: any) => c.type === 'output_text')
+        : undefined;
       let content: any = undefined;
       if (firstText?.text) {
         try { content = JSON.parse(firstText.text); } catch { content = firstText.text; }
@@ -72,7 +76,7 @@ export class OpenAIResponsesClient {
     onDelta: LLMResponseStreamHandler;
   }): Promise<void> {
     await this.withRetries(async () => {
-      const stream = await this.client.responses.stream({
+      const stream: any = await (this.client as any).responses.stream({
         model: MODELS.reasoner,
         input: [
           { role: "system", content: params.system },
@@ -81,8 +85,8 @@ export class OpenAIResponsesClient {
         tools: params.tools as any,
       } as any);
 
-      stream.on('text.delta', params.onDelta);
-      await stream.finalContent();
+      if (stream?.on) (stream as any).on('text.delta' as any, params.onDelta as any);
+      if (stream?.finalContent) await (stream as any).finalContent();
     });
   }
 

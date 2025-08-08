@@ -19,10 +19,10 @@ async function main() {
   const rebuild = process.argv.includes('--rebuild');
   let dryRun = process.argv.includes('--dry-run');
 
-  // If no API key but not explicitly dry-run, fall back to dry-run mode
+  // Enforce flags: if not dry-run, require OPENAI_API_KEY
   if (!dryRun && !process.env.OPENAI_API_KEY) {
-    console.warn('OPENAI_API_KEY not set; proceeding with --dry-run (no embeddings will be created).');
-    dryRun = true;
+    console.error('OPENAI_API_KEY not set. Set it or use --dry-run.');
+    process.exit(1);
   }
 
   let memStore: InMemoryVectorStore | undefined;
@@ -37,6 +37,8 @@ async function main() {
 
   // Only instantiate the OpenAI client when not in dry-run mode
   const embedder = dryRun ? undefined : new OpenAIResponsesClient();
+
+  console.log('Ingest flags:', { path: custom || 'sample-corpus', dryRun, rebuild });
 
   // Small sample ingestion from a local seed if present
   const sampleDir = path.join(process.cwd(), custom || 'sample-corpus');
@@ -71,11 +73,14 @@ async function main() {
     const embeddings = dryRun ? [] : await embedder!.embedTexts(textArr);
     if (!dryRun) {
       if (pgStore) {
+        // If rebuild, upsert everything; otherwise this demo still upserts all (no hash diff here)
         await pgStore.upsert(chunks, embeddings);
-        embedded += chunks.length; // simplified; real tracking would diff by hash
+        embedded += chunks.length;
+        if (rebuild) reembedded += chunks.length;
       } else if (memStore) {
         await memStore.upsert(chunks, embeddings);
         embedded += chunks.length;
+        if (rebuild) reembedded += chunks.length;
       }
     } else {
       skipped += chunks.length;

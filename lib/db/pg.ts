@@ -1,6 +1,11 @@
-import { Pool, PoolClient } from 'pg';
+// Avoid depending on @types/pg at runtime by using minimal local types
+type PoolClientLike = { release: () => void } & any;
+type PoolLike = { connect: () => Promise<PoolClientLike> } & any;
+// Use CommonJS require to prevent TS from resolving module types
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Pool } = require('pg');
 
-let _pool: Pool | undefined;
+let _pool: PoolLike | undefined;
 
 export function getPool() {
   if (!_pool) {
@@ -16,7 +21,7 @@ export function getPool() {
   return _pool;
 }
 
-export async function withClient<T>(fn: (c: PoolClient) => Promise<T>): Promise<T> {
+export async function withClient<T>(fn: (c: PoolClientLike) => Promise<T>): Promise<T> {
   const client = await getPool().connect();
   try { return await fn(client); }
   finally { client.release(); }
