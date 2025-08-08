@@ -1,7 +1,9 @@
 import { LegalSnippet } from "../types/legal";
-import { InMemoryVectorStore, cosineSimilarity } from "./vectorStore";
+import { InMemoryVectorStore } from "./vectorStore";
 import { PgVectorStore } from "./vectorStore.pg";
 import { OpenAIResponsesClient } from "../llm/openai";
+import { IdentityReranker } from './reranker';
+import { CohereReranker } from './reranker.cohere';
 
 export interface Retriever {
   search(params: {
@@ -38,11 +40,13 @@ export class VectorBackedRetriever implements Retriever {
   async search(params: { query: string; jurisdiction?: string; asAt?: string; limit?: number }): Promise<LegalSnippet[]> {
     const limit = params.limit ?? 8;
     const [qEmbedding] = await this.embedder.embedTexts([params.query]);
-    if (this.pgStore) {
-      return this.pgStore.similaritySearch({ queryEmbedding: qEmbedding, jurisdiction: params.jurisdiction, asAt: params.asAt, limit });
-    }
-    // in-memory fallback
-    return this.memStore!.similaritySearch({ queryEmbedding: qEmbedding, jurisdiction: params.jurisdiction, asAt: params.asAt, limit });
+    const base = this.pgStore
+      ? await this.pgStore.similaritySearch({ queryEmbedding: qEmbedding, jurisdiction: params.jurisdiction, asAt: params.asAt, limit })
+      : await this.memStore!.similaritySearch({ queryEmbedding: qEmbedding, jurisdiction: params.jurisdiction, asAt: params.asAt, limit });
+
+    const reranker = process.env.COHERE_API_KEY ? new CohereReranker(process.env.COHERE_API_KEY) : new IdentityReranker();
+    const reranked = await reranker.rerank(params.query, base);
+    return reranked.slice(0, limit);
   }
 }
 

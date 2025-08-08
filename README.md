@@ -174,3 +174,7 @@ pgvector setup (Neon/Supabase)
 
 Store selection
 - If `DATABASE_URL` is set, pgvector is used; otherwise an in-memory store is used for development.
+
+### Auth & Rate limiting
+- Set `AUSLEX_API_KEY` to enforce an API key via `x-auslex-key` header.
+- Rate limiting envs: `RL_WINDOW_MS` (default 60000), `RL_MAX` (default 60).

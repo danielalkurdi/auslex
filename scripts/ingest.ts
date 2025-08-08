@@ -5,6 +5,7 @@ import { PgVectorStore } from "../lib/rag/vectorStore.pg";
 import { chunkByParagraph } from "../lib/rag/chunker";
 import { LegalMetadata } from "../lib/types/legal";
 import { OpenAIResponsesClient } from "../lib/llm/openai";
+import { hashSnippet } from "../lib/rag/contentHash";
 
 async function main() {
   const dbUrl = process.env.DATABASE_URL;
@@ -22,6 +23,8 @@ async function main() {
   // Small sample ingestion from a local seed if present
   const argIdx = process.argv.indexOf('--path');
   const custom = argIdx !== -1 ? process.argv[argIdx + 1] : undefined;
+  const rebuild = process.argv.includes('--rebuild');
+  const dryRun = process.argv.includes('--dry-run');
   const sampleDir = path.join(process.cwd(), custom || 'sample-corpus');
   if (!fs.existsSync(sampleDir)) {
     console.log('No sample-corpus directory found; creating with a tiny demo file.');
@@ -31,6 +34,8 @@ async function main() {
   }
 
   const files = fs.readdirSync(sampleDir).filter(f => f.endsWith('.txt'));
+  let skipped = 0, embedded = 0, reembedded = 0;
+  const t0 = Date.now();
   for (const file of files) {
     const content = fs.readFileSync(path.join(sampleDir, file), 'utf8');
     const meta: LegalMetadata = {
@@ -47,17 +52,26 @@ async function main() {
       version: 'demo'
     };
     const chunks = chunkByParagraph(path.basename(file, '.txt'), content, meta);
-    const embeddings = await embedder.embedTexts(chunks.map(c => c.text));
-    if (pgStore) {
-      await pgStore.upsert(chunks, embeddings);
-    } else if (memStore) {
-      await memStore.upsert(chunks, embeddings);
+    chunks.forEach(c => (c as any).content_hash = hashSnippet(c.text, c.meta));
+    const textArr = chunks.map(c => c.text);
+    const embeddings = dryRun ? [] : await embedder.embedTexts(textArr);
+    if (!dryRun) {
+      if (pgStore) {
+        await pgStore.upsert(chunks, embeddings);
+        embedded += chunks.length; // simplified; real tracking would diff by hash
+      } else if (memStore) {
+        await memStore.upsert(chunks, embeddings);
+        embedded += chunks.length;
+      }
+    } else {
+      skipped += chunks.length;
     }
   }
+  const dt = Date.now() - t0;
   if (pgStore) {
-    console.log(`Ingested into pgvector store.`);
+    console.log(`Ingest complete (pgvector). embedded=${embedded} skipped=${skipped} reembedded=${reembedded} in ${dt}ms`);
   } else if (memStore) {
-    console.log(`Ingested ${memStore.count()} chunks into in-memory store.`);
+    console.log(`Ingested ${memStore.count()} chunks into in-memory store. embedded=${embedded} skipped=${skipped} in ${dt}ms`);
   }
 }
 

@@ -1,23 +1,19 @@
-import { Client } from 'pg';
 import { VectorStore } from './vectorStore';
 import { LegalSnippet } from '../types/legal';
+import { withClient } from '../db/pg';
 
 const EMBEDDING_DIM = 3072;
 
 export class PgVectorStore implements VectorStore {
-  private client: Client;
-
-  constructor(databaseUrl: string) {
-    this.client = new Client({ connectionString: databaseUrl });
-  }
+  constructor(databaseUrl: string) {}
 
   async init(): Promise<void> {
-    await this.client.connect();
-    await this.client.query(`CREATE EXTENSION IF NOT EXISTS vector;`);
-    await this.client.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`).catch(() => {
+    await withClient(async c => {
+      await c.query(`CREATE EXTENSION IF NOT EXISTS vector;`);
+      await c.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`).catch(() => {
       console.warn('pg_trgm not available; hybrid scoring will be disabled.');
-    });
-    await this.client.query(`
+      });
+      await c.query(`
       CREATE TABLE IF NOT EXISTS legal_snippets (
         id TEXT PRIMARY KEY,
         embedding VECTOR(${EMBEDDING_DIM}),
@@ -33,22 +29,27 @@ export class PgVectorStore implements VectorStore {
         date_made DATE,
         date_in_force_from DATE,
         date_in_force_to DATE,
-        version TEXT
+        version TEXT,
+        content_hash TEXT,
+        embedding_version TEXT
       );
-    `);
-    await this.client.query(`CREATE INDEX IF NOT EXISTS legal_snippets_ivff ON legal_snippets USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);`).catch(() => {});
-    await this.client.query(`CREATE INDEX IF NOT EXISTS legal_snippets_juris_idx ON legal_snippets (jurisdiction);`).catch(() => {});
+      `);
+      await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS legal_snippets_hash_uq ON legal_snippets(content_hash);`).catch(()=>{});
+      await c.query(`CREATE INDEX IF NOT EXISTS legal_snippets_ivff ON legal_snippets USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);`).catch(() => {});
+      await c.query(`CREATE INDEX IF NOT EXISTS legal_snippets_juris_idx ON legal_snippets (jurisdiction);`).catch(() => {});
+    });
   }
 
   async upsert(snippets: LegalSnippet[], embeddings?: number[][]): Promise<void> {
     if (!embeddings || embeddings.length !== snippets.length) {
       throw new Error('PgVectorStore.upsert requires precomputed embeddings array matching snippets length');
     }
+    const cols = ['id','embedding','text','jurisdiction','source_type','court_or_publisher','title','citation','provision','paragraph','url','date_made','date_in_force_from','date_in_force_to','version','content_hash','embedding_version'];
+    const group = (idx: number) => `(${cols.map((_, j) => `$${idx*cols.length + j + 1}`).join(', ')})`;
     const text = `
-      INSERT INTO legal_snippets (
-        id, embedding, text, jurisdiction, source_type, court_or_publisher, title, citation, provision, paragraph, url, date_made, date_in_force_from, date_in_force_to, version
-      ) VALUES ${snippets.map((_, i) => `($${i*15+1}, $${i*15+2}, $${i*15+3}, $${i*15+4}, $${i*15+5}, $${i*15+6}, $${i*15+7}, $${i*15+8}, $${i*15+9}, $${i*15+10}, $${i*15+11}, $${i*15+12}, $${i*15+13}, $${i*15+14}, $${i*15+15})`).join(', ')}
-      ON CONFLICT (id) DO UPDATE SET
+      INSERT INTO legal_snippets (${cols.join(',')})
+      VALUES ${snippets.map((_, i) => group(i)).join(', ')}
+      ON CONFLICT (content_hash) DO UPDATE SET
         embedding = EXCLUDED.embedding,
         text = EXCLUDED.text,
         jurisdiction = EXCLUDED.jurisdiction,
@@ -62,7 +63,8 @@ export class PgVectorStore implements VectorStore {
         date_made = EXCLUDED.date_made,
         date_in_force_from = EXCLUDED.date_in_force_from,
         date_in_force_to = EXCLUDED.date_in_force_to,
-        version = EXCLUDED.version
+        version = EXCLUDED.version,
+        embedding_version = EXCLUDED.embedding_version
     `;
     const values: any[] = [];
     snippets.forEach((s, idx) => {
@@ -83,9 +85,11 @@ export class PgVectorStore implements VectorStore {
         s.meta.dateInForceFrom || null,
         s.meta.dateInForceTo || null,
         s.meta.version || null,
+        (s as any).content_hash || null,
+        process.env.EMBEDDING_MODEL || 'text-embedding-3-large'
       );
     });
-    await this.client.query(text, values);
+    await withClient(c => c.query(text, values));
   }
 
   async similaritySearch(params: { queryEmbedding: number[]; jurisdiction?: string; asAt?: string; limit: number }): Promise<LegalSnippet[]> {
@@ -115,7 +119,7 @@ export class PgVectorStore implements VectorStore {
       ORDER BY score DESC
       LIMIT ${Math.max(1, Math.min(50, limit))}
     `;
-    const res = await this.client.query(sql, vals);
+    const res = await withClient(c => c.query(sql, vals));
     return res.rows.map(r => ({
       id: r.id,
       text: r.text,

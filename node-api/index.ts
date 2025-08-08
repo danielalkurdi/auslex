@@ -6,6 +6,8 @@ import { AuslexAnswer } from "../lib/types/answers";
 import { VectorBackedRetriever } from "../lib/rag/retriever";
 import { initSSE, writeSSE, endSSE } from './sse';
 import { recordAsk } from '../lib/telemetry';
+import { requireApiKey } from './middleware/auth';
+import { rateLimit } from './middleware/rateLimit';
 
 const app = express();
 app.use(cors());
@@ -14,7 +16,7 @@ app.use(express.json());
 // Construct retriever per-request to avoid long-lived globals in serverless
 const llm = new OpenAIResponsesClient();
 
-app.post('/api/ask', async (req, res) => {
+app.post('/api/ask', requireApiKey, rateLimit, async (req, res) => {
   const { question, jurisdiction, asAt } = req.body || {};
   if (!question || typeof question !== 'string') {
     return res.status(400).json({ error: 'question is required' });

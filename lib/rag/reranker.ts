@@ -1,12 +1,10 @@
 import { LegalSnippet } from "../types/legal";
 
 export interface Reranker {
-  rerank(query: string, snippets: LegalSnippet[], topK: number): Promise<LegalSnippet[]>;
+  rerank(query: string, candidates: LegalSnippet[]): Promise<LegalSnippet[]>;
 }
 
-export class NoopReranker implements Reranker {
-  async rerank(_query: string, snippets: LegalSnippet[], topK: number): Promise<LegalSnippet[]> {
-    return snippets.slice(0, topK);
-  }
+export class IdentityReranker implements Reranker {
+  async rerank(_q: string, c: LegalSnippet[]) { return c; }
 }
 
