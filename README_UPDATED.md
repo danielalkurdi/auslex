@@ -28,7 +28,8 @@ npm run build
 
 - React 18 with hooks optimization
 - Tailwind CSS for styling
-- FastAPI backend (Python)
+- FastAPI backend (Python) for legacy endpoints
+- Node/TypeScript API at `/api/ask` for RAG-first GPT-5 flow
 - Docker support included
 
 ## License
