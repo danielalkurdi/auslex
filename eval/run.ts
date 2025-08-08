@@ -91,6 +91,12 @@ async function main() {
   const header = ['id','pass','latencyMs','snippetCount','reasons'];
   const csv = [header.join(',')].concat(results.map(r => [r.id, r.pass, r.latencyMs, r.snippetCount, r.reasons.join('|')].join(','))).join('\n');
   fs.writeFileSync(path.join(outDir, 'results.csv'), csv);
+  const enforce = process.env.EVAL_ENFORCE === '1';
+  const minAcc = Number(process.env.EVAL_MIN_ACCURACY || '0.8') * 100;
+  if (enforce && Number(acc) < minAcc) {
+    console.error(`Eval accuracy ${acc}% below threshold ${minAcc}%`);
+    process.exit(2);
+  }
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

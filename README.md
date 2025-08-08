@@ -189,6 +189,20 @@ Store selection
   - Ask a sample question; verify SSE streaming.
 
 Troubleshooting
+
+## Operations
+
+CI & Nightly Eval
+- CI runs typecheck and tests on PRs and pushes to main. It optionally runs `npm run eval` when `OPENAI_API_KEY` is present and uploads artifacts.
+- Nightly Eval runs at 16:00 UTC (02:00 AEST standard). It uploads artifacts and comments a summary to the "Eval Results" issue. Fails if accuracy < `EVAL_MIN_ACCURACY` (default 0.8).
+
+Secrets
+- Add `OPENAI_API_KEY` (required for eval) and `DATABASE_URL` (optional for eval) to repository secrets.
+- Set `EVAL_MIN_ACCURACY` in repo variables to tune the nightly threshold.
+
+DB Snapshots
+- Trigger the DB snapshot workflow manually or wait for the weekly schedule (Sun 04:00 AEST).
+- It requires `DATABASE_URL` with a read-only or snapshot role. Artifacts are retained for 14 days.
 - Ensure Neon has `vector` extension enabled and indexes exist.
 - If SSE doesn’t stream, verify you are not on Edge runtime.
 - Set `AUSLEX_API_KEY` to enforce an API key via `x-auslex-key` header.
