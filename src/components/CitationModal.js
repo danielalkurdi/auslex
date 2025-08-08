@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ExternalLink, Copy, Check, Loader2, AlertCircle, Search, Globe } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useAustLII } from '../services/austliiService';
@@ -28,14 +28,14 @@ const CitationModal = ({
   const [copiedCitation, setCopiedCitation] = useState(false);
   const modalRef = useRef(null);
   const iframeRef = useRef(null);
-  const { constructUrl, getUrlOptions } = useAustLII();
+  const { getUrlOptions } = useAustLII();
 
   // Load AustLII URL when modal opens
   useEffect(() => {
     if (isOpen && citation) {
       loadAustliiUrl();
     }
-  }, [isOpen, citation]);
+  }, [isOpen, citation, loadAustliiUrl]);
 
   // Close modal on escape key
   useEffect(() => {
@@ -68,7 +68,7 @@ const CitationModal = ({
   /**
    * Load AustLII URL for citation
    */
-  const loadAustliiUrl = () => {
+  const loadAustliiUrl = useCallback(() => {
     setIsLoading(true);
     setIframeError(false);
 
@@ -85,7 +85,7 @@ const CitationModal = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [citation, getUrlOptions]);
 
   /**
    * Handle iframe load events

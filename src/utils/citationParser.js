@@ -51,10 +51,10 @@ export class CitationParser {
     // Legislation pattern 2: "Act Name Year (Jurisdiction) s X"
     // Matches: "Migration Act 1958 (Cth) s 359A", "Privacy Act 1988 (Cth) ss 6-8"
     // More restrictive to avoid capturing too much text
-    this.sectionLastPattern = /\b([A-Z][A-Za-z\s]+(?:Act|Code|Law))\s+(\d{4})\s*\(([^)]+)\)\s+(ss?)\s+([\d\-A-Za-z\(\)]+)\b/gi;
+    this.sectionLastPattern = /\b([A-Z][A-Za-z\s]+(?:Act|Code|Law))\s+(\d{4})\s*\(([^)]+)\)\s+(ss?)\s+([\d\-A-Za-z()]+)\b/gi;
     
     // Additional pattern for regulations
-    this.regulationPattern = /([^(]+?(?:Regulations?|Rules?))\s+(\d{4})\s*\(([^)]+)\)\s+(reg?|r|rule)\s+([\d\-A-Za-z\(\)\.]+)/gi;
+    this.regulationPattern = /([^(]+?(?:Regulations?|Rules?))\s+(\d{4})\s*\(([^)]+)\)\s+(reg?|r|rule)\s+([\d\-A-Za-z().]+)/gi;
     
     // Pattern for Act citations without section references (e.g., "Privacy Act 1988 (Cth)")
     // Start with "the" or capital letter to avoid capturing preceding text
