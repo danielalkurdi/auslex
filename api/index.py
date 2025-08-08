@@ -11,10 +11,7 @@ import secrets
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
 
-# Ensure FastAPI routes resolve when deployed behind Vercel's /api prefix
-ROOT_PATH = "/api" if os.getenv("VERCEL") else ""
-
-app = FastAPI(title="AusLex AI API", version="1.0.0", root_path=ROOT_PATH)
+app = FastAPI(title="AusLex AI API", version="1.0.0")
 
 # Security
 SECRET_KEY = os.getenv("JWT_SECRET_KEY") or secrets.token_urlsafe(32)
@@ -265,6 +262,19 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "AusLex AI API"}
 
+# Prefixed routes for Vercel /api mapping
+@app.get("/api")
+async def root_prefixed():
+    return await root()
+
+@app.get("/api/")
+async def root_prefixed_slash():
+    return await root()
+
+@app.get("/api/health")
+async def health_check_prefixed():
+    return await health_check()
+
 # Authentication endpoints
 @app.post("/auth/register", response_model=AuthResponse)
 async def register(user_data: UserRegister):
@@ -299,6 +309,10 @@ async def register(user_data: UserRegister):
         user=UserResponse(id=user_id, name=user_data.name, email=user_data.email)
     )
 
+@app.post("/api/auth/register", response_model=AuthResponse)
+async def register_prefixed(user_data: UserRegister):
+    return await register(user_data)
+
 @app.post("/auth/login", response_model=AuthResponse)
 async def login(user_data: UserLogin):
     # Find user by email
@@ -322,6 +336,10 @@ async def login(user_data: UserLogin):
         token_type="bearer",
         user=UserResponse(id=user["id"], name=user["name"], email=user["email"])
     )
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+async def login_prefixed(user_data: UserLogin):
+    return await login(user_data)
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
@@ -382,6 +400,10 @@ Click on any of the highlighted citations above to see a popup displaying the ac
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat_prefixed(request: ChatRequest):
+    return await chat(request)
+
 @app.post("/legal/provision", response_model=ProvisionResponse)
 async def get_legal_provision(request: ProvisionRequest):
     """
@@ -425,6 +447,10 @@ async def get_legal_provision(request: ProvisionRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching provision: {str(e)}")
+
+@app.post("/api/legal/provision", response_model=ProvisionResponse)
+async def get_legal_provision_prefixed(request: ProvisionRequest):
+    return await get_legal_provision(request)
 
 def generate_lookup_key(act_name: str, year: str, jurisdiction: str, provision: str) -> str:
     """Generate a lookup key for the mock provisions database"""
