@@ -4,6 +4,8 @@ import { OpenAIResponsesClient } from "../lib/llm/openai";
 import { tools } from "../lib/llm/tools";
 import { AuslexAnswer } from "../lib/types/answers";
 import { VectorBackedRetriever } from "../lib/rag/retriever";
+import { initSSE, writeSSE, endSSE } from './sse';
+import { recordAsk } from '../lib/telemetry';
 
 const app = express();
 app.use(cors());
@@ -17,10 +19,21 @@ app.post('/api/ask', async (req, res) => {
   if (!question || typeof question !== 'string') {
     return res.status(400).json({ error: 'question is required' });
   }
+  if (question.length > 2000) {
+    return res.status(400).json({ error: 'question too long' });
+  }
+
+  const streamed = String(req.query.stream || '') === '1';
+  const started = Date.now();
 
   const system = `You are Auslex, an Australian-law specialist.\n\n- Always answer with AGLC-style citations; pinpoint to paragraph/provision.\n- Never invent authorities; only cite from provided snippets.\n- If retrieval is insufficient, ask a clarifying question or say you cannot answer.\n- Prefer jurisdiction-appropriate sources; respect as_at.\n- Output strictly in the provided JSON schema.`;
 
-  // First call: allow tool calling to retrieve snippets
+  if (streamed) {
+    initSSE(res);
+    writeSSE(res, 'ready', {});
+  }
+
+  // First call: allow tool calling to retrieve snippets (stream if requested)
   const toolResult = await llm.respondJSON({
     system,
     user: `Question: ${question}\nJurisdiction: ${jurisdiction || ''}\nAs at: ${asAt || ''}`,
@@ -41,15 +54,46 @@ app.post('/api/ask', async (req, res) => {
         limit: Math.min(12, Math.max(1, Number(args.limit) || 8)),
       });
       snippets = results;
+      if (streamed) {
+        writeSSE(res, 'snippets', results.slice(0, 5).map(s => ({
+          id: s.id,
+          title: s.meta.title || s.meta.citation || '',
+          provision: s.meta.provision,
+          paragraph: s.meta.paragraph,
+          url: s.meta.url,
+          jurisdiction: s.meta.jurisdiction,
+        })));
+      }
     }
   }
 
-  // Second call: require strict JSON output
-  const final = await llm.respondJSON({
-    system,
-    user: JSON.stringify({ question, jurisdiction, asAt, snippets }),
-    responseFormat: { type: 'json_object' },
-  });
+  // Second call: require strict JSON output; stream deltas if requested
+  let buffer: any = null;
+  let final: any = null;
+  if (!streamed) {
+    final = await llm.respondJSON({
+      system,
+      user: JSON.stringify({ question, jurisdiction, asAt, snippets }),
+      responseFormat: { type: 'json_object' },
+    });
+  } else {
+    // Use streaming for partial prose (structured partials)
+    await llm.respondStream({
+      system,
+      user: JSON.stringify({ question, jurisdiction, asAt, snippets }),
+      tools: tools as any,
+      onDelta: (delta: string) => {
+        // send partial prose only; full JSON will be validated at the end
+        writeSSE(res, 'delta', { proseFragment: delta });
+      },
+    });
+    // After stream, request one-shot JSON to validate
+    final = await llm.respondJSON({
+      system,
+      user: JSON.stringify({ question, jurisdiction, asAt, snippets }),
+      responseFormat: { type: 'json_object' },
+    });
+  }
 
   // Validate against schema; if invalid, nudge once
   let content = final.content;
@@ -73,6 +117,14 @@ app.post('/api/ask', async (req, res) => {
     }
   } catch {}
 
+  const duration = Date.now() - started;
+  recordAsk({ durationMs: duration, snippets: snippets.length, jurisdiction, asAt, streamed: !!streamed });
+
+  if (streamed) {
+    writeSSE(res, 'done', { answer: content, snippets });
+    writeSSE(res, 'metrics', { durationMs: duration, snippetCount: snippets.length });
+    return endSSE(res);
+  }
   return res.json({ answer: content, snippets });
 });
 
