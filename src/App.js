@@ -18,6 +18,8 @@ function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [jurisdiction, setJurisdiction] = useState('');
+  const [asAt, setAsAt] = useState('');
     const [settings, setSettings] = useState({
       apiEndpoint: process.env.REACT_APP_API_ENDPOINT || 'http://localhost:8787',
     maxTokens: 2048,
@@ -155,7 +157,7 @@ function AppContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ question: message }),
+        body: JSON.stringify({ question: message, jurisdiction: jurisdiction || undefined, asAt: asAt || undefined }),
       });
 
       if (!response.ok) {
@@ -166,7 +168,7 @@ function AppContent() {
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid response format');
       }
-      const responseContent = data?.answer?.answer || data?.answer?.answer?.answer || 'No answer';
+      const responseContent = data?.answer?.answer || 'No answer';
       if (typeof responseContent !== 'string') throw new Error('Invalid response content');
 
       const aiMessage = {
@@ -174,6 +176,12 @@ function AppContent() {
         content: responseContent,
         role: 'assistant',
         timestamp: new Date().toISOString(),
+        structured: {
+          answer: data?.answer || null,
+          snippets: data?.snippets || [],
+          asAt: asAt || null,
+          jurisdiction: jurisdiction || null
+        }
       };
 
       setChats(prev => prev.map(chat =>
@@ -263,6 +271,10 @@ function AppContent() {
             onSendMessage={handleSendMessage}
             isLoading={isChatLoading}
             messagesEndRef={messagesEndRef}
+            jurisdiction={jurisdiction}
+            setJurisdiction={setJurisdiction}
+            asAt={asAt}
+            setAsAt={setAsAt}
           />
         ) : (
           <AboutUs />

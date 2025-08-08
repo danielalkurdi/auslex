@@ -1,7 +1,5 @@
-import request from 'supertest';
-import { createServer } from '../../node-api/server';
-import { InMemoryVectorStore } from '../../lib/rag/vectorStore';
-import { VectorBackedRetriever } from '../../lib/rag/vectorStore';
+const request = require('supertest');
+const { createServer } = require('../../node-api/server.cjs');
 
 const demoSnippet = {
   id: 'demo_0',
@@ -15,16 +13,31 @@ const demoSnippet = {
     url: 'https://example.com/migration/s501#45',
     dateInForceFrom: '1958-01-01',
     dateInForceTo: null,
-  } as any
+  }
 };
 
+function inForceAt(snippet, asAtIso) {
+  const asAt = asAtIso ? new Date(asAtIso) : new Date();
+  const from = snippet.meta.dateInForceFrom ? new Date(snippet.meta.dateInForceFrom) : undefined;
+  const to = snippet.meta.dateInForceTo ? new Date(snippet.meta.dateInForceTo) : undefined;
+  if (!from && !to) return true;
+  if (from && asAt < from) return false;
+  if (to && asAt > to) return false;
+  return true;
+}
+
 describe('ask API', () => {
-  const store = new InMemoryVectorStore();
-  const retriever = new VectorBackedRetriever(store);
-  const app = createServer({ retriever } as any);
+  const memoryStore = [];
+  const retriever = {
+    async search({ query, jurisdiction, asAt, limit = 5 }) {
+      const results = memoryStore.filter(s => !jurisdiction || (s.meta.jurisdiction || '').toLowerCase() === jurisdiction.toLowerCase());
+      return results.slice(0, limit);
+    }
+  };
+  const app = createServer({ retriever });
 
   beforeAll(async () => {
-    await store.upsert([demoSnippet as any]);
+    memoryStore.push(demoSnippet);
     process.env.TEST_MODE = '1';
   });
 
@@ -38,7 +51,7 @@ describe('ask API', () => {
 
   it('includes AGLC-style citation fields', async () => {
     const res = await request(app).post('/api/ask').send({ question: 'Explain s 501 character test', jurisdiction: 'Cth' });
-    const q = res.body.answer.quotes?.[0];
+    const q = res.body.answer.quotes && res.body.answer.quotes[0];
     expect(q).toBeTruthy();
     expect(q.citation.jurisdiction).toBeTruthy();
     expect(q.citation.provision || q.citation.paragraph || q.citation.citation).toBeTruthy();
