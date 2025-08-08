@@ -175,6 +175,10 @@ pgvector setup (Neon/Supabase)
 Store selection
 - If `DATABASE_URL` is set, pgvector is used; otherwise an in-memory store is used for development.
 
+Schema & Branch
+- Neon branch for app traffic: `production`
+- All SQL targets schema: `auslex` (tables are qualified as `auslex.legal_snippets`)
+
 ### Auth & Rate limiting
 ### Deploy to Vercel
 - Set environment variables in Vercel Project Settings: `OPENAI_API_KEY`, `DATABASE_URL` (Neon pooled string), `PG_SSL=require`, `PG_POOL_MAX`, `PG_IDLE_TIMEOUT_MS`, `AUSLEX_API_KEY`, `RL_WINDOW_MS`, `RL_MAX`, `COHERE_API_KEY` (optional).

@@ -9,34 +9,39 @@ export class PgVectorStore implements VectorStore {
 
   async init(): Promise<void> {
     await withClient(async c => {
-      await c.query(`CREATE EXTENSION IF NOT EXISTS vector;`);
-      await c.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`).catch(() => {
-      console.warn('pg_trgm not available; hybrid scoring will be disabled.');
-      });
-      await c.query(`
-      CREATE TABLE IF NOT EXISTS legal_snippets (
-        id TEXT PRIMARY KEY,
-        embedding VECTOR(${EMBEDDING_DIM}),
-        text TEXT NOT NULL,
-        jurisdiction TEXT,
-        source_type TEXT,
-        court_or_publisher TEXT,
-        title TEXT,
-        citation TEXT,
-        provision TEXT,
-        paragraph TEXT,
-        url TEXT,
-        date_made DATE,
-        date_in_force_from DATE,
-        date_in_force_to DATE,
-        version TEXT,
-        content_hash TEXT,
-        embedding_version TEXT
-      );
-      `);
-      await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS legal_snippets_hash_uq ON legal_snippets(content_hash);`).catch(()=>{});
-      await c.query(`CREATE INDEX IF NOT EXISTS legal_snippets_ivff ON legal_snippets USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);`).catch(() => {});
-      await c.query(`CREATE INDEX IF NOT EXISTS legal_snippets_juris_idx ON legal_snippets (jurisdiction);`).catch(() => {});
+      // Do not create extensions here; assumed ensured earlier
+      try {
+        await c.query(`
+        CREATE TABLE IF NOT EXISTS auslex.legal_snippets (
+          id TEXT PRIMARY KEY,
+          embedding VECTOR(${EMBEDDING_DIM}),
+          text TEXT NOT NULL,
+          jurisdiction TEXT,
+          source_type TEXT,
+          court_or_publisher TEXT,
+          title TEXT,
+          citation TEXT,
+          provision TEXT,
+          paragraph TEXT,
+          url TEXT,
+          date_made DATE,
+          date_in_force_from DATE,
+          date_in_force_to DATE,
+          version TEXT,
+          content_hash TEXT,
+          embedding_version TEXT
+        );
+        `);
+      } catch (err: any) {
+        if (err?.code === '42501') {
+          console.warn('No CREATE privilege for schema; skipping table creation.');
+        } else {
+          throw err;
+        }
+      }
+      try { await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS legal_snippets_hash_uq ON auslex.legal_snippets(content_hash);`); } catch {}
+      // Skip ANN index creation to remain compatible with environments where ivfflat/HNSW may be unavailable
+      try { await c.query(`CREATE INDEX IF NOT EXISTS legal_snippets_juris_idx ON auslex.legal_snippets (jurisdiction);`); } catch {}
     });
   }
 
@@ -47,7 +52,7 @@ export class PgVectorStore implements VectorStore {
     const cols = ['id','embedding','text','jurisdiction','source_type','court_or_publisher','title','citation','provision','paragraph','url','date_made','date_in_force_from','date_in_force_to','version','content_hash','embedding_version'];
     const group = (idx: number) => `(${cols.map((_, j) => `$${idx*cols.length + j + 1}`).join(', ')})`;
     const text = `
-      INSERT INTO legal_snippets (${cols.join(',')})
+      INSERT INTO auslex.legal_snippets (${cols.join(',')})
       VALUES ${snippets.map((_, i) => group(i)).join(', ')}
       ON CONFLICT (content_hash) DO UPDATE SET
         embedding = EXCLUDED.embedding,
@@ -114,7 +119,7 @@ export class PgVectorStore implements VectorStore {
              (1 - (embedding <=> $1)) as sim,
              COALESCE(similarity(text, ' '), 0) as textscore,
              (0.7 * (1 - (embedding <=> $1)) + 0.3 * COALESCE(similarity(text, ' '), 0)) as score
-      FROM legal_snippets
+      FROM auslex.legal_snippets
       ${where}
       ORDER BY score DESC
       LIMIT ${Math.max(1, Math.min(50, limit))}

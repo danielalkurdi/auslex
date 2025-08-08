@@ -13,6 +13,7 @@
     "express": "^5.1.0",
     "lucide-react": "^0.263.1",
     "openai": "^5.12.1",
+    "pg": "^8.16.3",
     "postcss": "^8.4.24",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
@@ -34,7 +35,9 @@
     "ingest": "ts-node scripts/ingest.ts",
     "eval": "node -r ts-node/register/transpile-only eval/run.ts --file eval/seed.json",
     "db:provision": "node scripts/db/run-provision.js",
-    "db:analyze": "node scripts/db/run-analyze.js"
+    "db:analyze": "node scripts/db/run-analyze.js",
+    "db:create-ivff": "node scripts/db/create-ivff.js",
+    "db:check": "ts-node --transpile-only scripts/smoke/check-db.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -73,6 +76,8 @@
     "testMatch": [
       "**/tests/**/*.(test|spec).(ts|js)"
     ],
-    "setupFiles": ["<rootDir>/tests/jest.setup.js"]
+    "setupFiles": [
+      "<rootDir>/tests/jest.setup.js"
+    ]
   }
 }

@@ -71,7 +71,7 @@ export class VectorBackedRetriever {
   async search(params: { query: string; jurisdiction?: string; asAt?: string; limit?: number }): Promise<LegalSnippet[]> {
     const limit = params.limit ?? 8;
     const qVec = await fakeLocalEmbedding(params.query);
-    let results = await this.store.similaritySearch(qVec, limit * 2);
+    let results = await this.store.similaritySearch({ queryEmbedding: qVec, limit: limit * 2 });
     // Jurisdiction filter (soft)
     if (params.jurisdiction) {
       results = results.filter(r => r.meta.jurisdiction?.toLowerCase().includes(params.jurisdiction!.toLowerCase()));
