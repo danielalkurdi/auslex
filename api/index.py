@@ -11,7 +11,10 @@ import secrets
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
 
-app = FastAPI(title="AusLex AI API", version="1.0.0")
+# Ensure FastAPI routes resolve when deployed behind Vercel's /api prefix
+ROOT_PATH = "/api" if os.getenv("VERCEL") else ""
+
+app = FastAPI(title="AusLex AI API", version="1.0.0", root_path=ROOT_PATH)
 
 # Security
 SECRET_KEY = os.getenv("JWT_SECRET_KEY") or secrets.token_urlsafe(32)
@@ -428,104 +431,7 @@ def generate_lookup_key(act_name: str, year: str, jurisdiction: str, provision: 
     act_key = act_name.lower().replace(" ", "_").replace("(", "").replace(")", "")
     return f"{act_key}_{year}_{jurisdiction.lower()}_s_{provision.lower()}"
 
-# Vercel serverless function handler
-def handler(request, response):
-    """Simple HTTP handler for Vercel"""
-    import asyncio
-    from urllib.parse import urlparse, parse_qs
-    
-    # Extract path and method
-    path = request.get('path', '/')
-    method = request.get('httpMethod', 'GET')
-    headers = request.get('headers', {})
-    body = request.get('body', '')
-    
-    # Create a simple response for testing
-    if path == '/api/' or path == '/api':
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            },
-            'body': json.dumps({
-                "message": "AusLex AI API - Australian Legal Assistant",
-                "status": "running",
-                "path": path,
-                "method": method
-            })
-        }
-    
-    # Health check endpoint
-    elif path == '/api/health':
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({
-                "status": "healthy", 
-                "service": "AusLex AI API"
-            })
-        }
-    
-    # Chat endpoint
-    elif path == '/api/chat' and method == 'POST':
-        try:
-            if isinstance(body, str):
-                chat_data = json.loads(body)
-            else:
-                chat_data = body
-                
-            message = chat_data.get('message', '')
-            response_text = f"I understand you're asking about Australian law. Based on your question: '{message}', I would need to provide specific legal guidance. However, please note that this is for educational purposes only and should not be considered as legal advice. For actual legal matters, please consult with a qualified legal professional."
-            
-            return {
-                'statusCode': 200,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({
-                    "response": response_text,
-                    "tokens_used": len(response_text.split()) + len(message.split()),
-                    "processing_time": 1.5
-                })
-            }
-        except Exception as e:
-            return {
-                'statusCode': 500,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({"error": f"Error processing request: {str(e)}"})
-            }
-    
-    # CORS preflight
-    elif method == 'OPTIONS':
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            },
-            'body': ''
-        }
-    
-    # Default 404
-    return {
-        'statusCode': 404,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        'body': json.dumps({"error": "Not found", "path": path})
-    }
+ 
 
 if __name__ == "__main__":
     import uvicorn
