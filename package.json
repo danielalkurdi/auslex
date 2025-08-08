@@ -31,7 +31,10 @@
     "test:react": "react-scripts test",
     "eject": "react-scripts eject",
     "dev:node": "ts-node-dev --respawn --transpile-only node-api/index.ts",
-    "ingest": "ts-node scripts/ingest.ts"
+    "ingest": "ts-node scripts/ingest.ts",
+    "eval": "node -r ts-node/register/transpile-only eval/run.ts --file eval/seed.json",
+    "db:provision": "node scripts/db/run-provision.js",
+    "db:analyze": "node scripts/db/run-analyze.js"
   },
   "eslintConfig": {
     "extends": [

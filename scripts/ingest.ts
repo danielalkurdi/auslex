@@ -10,6 +10,10 @@ import { hashSnippet } from "../lib/rag/contentHash";
 async function main() {
   const dbUrl = process.env.DATABASE_URL;
   const usingPg = !!dbUrl;
+  if (process.env.VERCEL === '1' && !process.argv.includes('--force')) {
+    console.error('Refusing to ingest on Vercel runtime. Run locally or pass --force.');
+    process.exit(1);
+  }
   const embedder = new OpenAIResponsesClient();
   let memStore: InMemoryVectorStore | undefined;
   let pgStore: PgVectorStore | undefined;

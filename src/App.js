@@ -20,8 +20,9 @@ function AppContent() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [jurisdiction, setJurisdiction] = useState('');
   const [asAt, setAsAt] = useState('');
+    const defaultApi = typeof window !== 'undefined' && window.location ? '' : 'http://localhost:8787';
     const [settings, setSettings] = useState({
-      apiEndpoint: process.env.REACT_APP_API_ENDPOINT || 'http://localhost:8787',
+      apiEndpoint: process.env.REACT_APP_API_ENDPOINT || defaultApi,
     maxTokens: 2048,
     temperature: 0.7,
     topP: 0.9,
@@ -152,7 +153,8 @@ function AppContent() {
     setIsChatLoading(true);
 
     try {
-      const response = await fetch(`${settings.apiEndpoint}/api/ask`, {
+      const base = settings.apiEndpoint || '';
+      const response = await fetch(`${base}/api/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

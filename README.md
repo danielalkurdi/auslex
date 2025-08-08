@@ -176,5 +176,20 @@ Store selection
 - If `DATABASE_URL` is set, pgvector is used; otherwise an in-memory store is used for development.
 
 ### Auth & Rate limiting
+### Deploy to Vercel
+- Set environment variables in Vercel Project Settings: `OPENAI_API_KEY`, `DATABASE_URL` (Neon pooled string), `PG_SSL=require`, `PG_POOL_MAX`, `PG_IDLE_TIMEOUT_MS`, `AUSLEX_API_KEY`, `RL_WINDOW_MS`, `RL_MAX`, `COHERE_API_KEY` (optional).
+- API routes use Node runtime (see `export const runtime = 'nodejs'`).
+- Bootstrap the database and ingest locally or via CI:
+  - `npm run db:provision`
+  - `npm run db:analyze`
+  - `npm run ingest -- --path ./sample-corpus`
+- Post-deploy checks:
+  - Open `/api/health` and confirm `{ ok:true, db:true, vector:"pg" }`.
+  - Run Eval page and `npm run eval`.
+  - Ask a sample question; verify SSE streaming.
+
+Troubleshooting
+- Ensure Neon has `vector` extension enabled and indexes exist.
+- If SSE doesn’t stream, verify you are not on Edge runtime.
 - Set `AUSLEX_API_KEY` to enforce an API key via `x-auslex-key` header.
 - Rate limiting envs: `RL_WINDOW_MS` (default 60000), `RL_MAX` (default 60).
