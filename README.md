@@ -1,6 +1,6 @@
 # AusLex AI - Australian Legal Assistant
 
-A modern web application for interacting with a GPT-20B model fine-tuned on Australian legal data. This application provides a professional interface for legal research, case law analysis, and legal assistance.
+A modern web application for interacting with OpenAI's gpt-oss-20b model fine-tuned on Australian legal data. This application provides a professional interface for legal research, case law analysis, and legal assistance.
 
 ## Features
 
