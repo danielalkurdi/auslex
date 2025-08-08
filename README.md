@@ -153,3 +153,24 @@ For support or questions about the application, please open an issue in the repo
 - [ ] User authentication and conversation history
 - [ ] Integration with legal databases
 - [ ] Multi-language support 
+
+## RAG Quickstart
+
+Environment
+- Create `.env` in project root:
+  - `OPENAI_API_KEY=...`
+  - `DATABASE_URL=...` (optional, Postgres with pgvector)
+
+Node API
+- Start the Node RAG API: `npm run dev:node`
+- Default endpoint: `http://localhost:8787/api/ask`
+
+Ingestion
+- Use in-memory (default): `npm run ingest -- --path ./sample-corpus`
+- Use pgvector: set `DATABASE_URL` then run the same ingest command
+
+pgvector setup (Neon/Supabase)
+- Ensure `CREATE EXTENSION IF NOT EXISTS vector;` and optionally `pg_trgm` are enabled.
+
+Store selection
+- If `DATABASE_URL` is set, pgvector is used; otherwise an in-memory store is used for development.

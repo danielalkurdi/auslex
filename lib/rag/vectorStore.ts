@@ -3,8 +3,8 @@ import { MODELS } from "../config";
 import { LegalMetadata, LegalSnippet } from "../types/legal";
 
 export interface VectorStore {
-  upsert(snippets: LegalSnippet[]): Promise<void>;
-  similaritySearch(queryEmbedding: number[], limit: number): Promise<LegalSnippet[]>;
+  upsert(snippets: LegalSnippet[], embeddings?: number[][]): Promise<void>;
+  similaritySearch(params: { queryEmbedding: number[]; jurisdiction?: string; asAt?: string; limit: number }): Promise<LegalSnippet[]>;
   count(): number;
 }
 
@@ -15,22 +15,30 @@ export interface EmbeddingProvider {
 export class InMemoryVectorStore implements VectorStore {
   private items: { id: string; vector: number[]; snippet: LegalSnippet }[] = [];
 
-  async upsert(snippets: LegalSnippet[]): Promise<void> {
+  async upsert(snippets: LegalSnippet[], embeddings?: number[][]): Promise<void> {
     for (const snip of snippets) {
-      const vector = await fakeLocalEmbedding(snip.text);
+      const vector = embeddings && embeddings.length ? embeddings.shift()! : await fakeLocalEmbedding(snip.text);
       const existingIndex = this.items.findIndex(i => i.id === snip.id);
       if (existingIndex >= 0) this.items.splice(existingIndex, 1);
       this.items.push({ id: snip.id, vector, snippet: snip });
     }
   }
 
-  async similaritySearch(queryEmbedding: number[], limit: number): Promise<LegalSnippet[]> {
+  async similaritySearch(params: { queryEmbedding: number[]; jurisdiction?: string; asAt?: string; limit: number }): Promise<LegalSnippet[]> {
     const scored = this.items.map(it => ({
-      score: cosineSimilarity(queryEmbedding, it.vector),
+      score: cosineSimilarity(params.queryEmbedding, it.vector),
       snippet: it.snippet,
     }));
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, limit).map(s => s.snippet);
+    let results = scored.map(s => s.snippet);
+    if (params.jurisdiction) {
+      results = results.filter(r => (r.meta.jurisdiction || '').toLowerCase().includes(params.jurisdiction!.toLowerCase()));
+    }
+    if (params.asAt) {
+      const asAtDate = new Date(params.asAt);
+      results = results.filter(r => inForceAt(r, asAtDate));
+    }
+    return results.slice(0, params.limit);
   }
 
   count(): number {

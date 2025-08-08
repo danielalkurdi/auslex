@@ -21,6 +21,20 @@ export class OpenAIResponsesClient {
     this.client = new OpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY });
   }
 
+  async embedTexts(texts: string[]): Promise<number[][]> {
+    const out: number[][] = [];
+    const chunkSize = 128;
+    for (let i = 0; i < texts.length; i += chunkSize) {
+      const batch = texts.slice(i, i + chunkSize);
+      const res = await this.client.embeddings.create({
+        model: MODELS.embedding,
+        input: batch,
+      } as any);
+      out.push(...res.data.map((d: any) => d.embedding as number[]));
+    }
+    return out;
+  }
+
   async respondJSON(params: {
     system: string;
     user: string;

@@ -1,2 +1,2 @@
-require('ts-node/register/transpile-only');
+// Reserved for future TS transforms if needed
 

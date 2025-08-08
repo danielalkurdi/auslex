@@ -160,7 +160,9 @@ InputArea.propTypes = {
 
 InputArea.displayName = 'InputArea';
 
-const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messagesEndRef }) => {
+const jurisdictions = ['Cth','NSW','VIC','QLD','WA','SA','TAS','NT','ACT','HCA','FCA','FCCA','FCAAFC','NSWCA'];
+
+const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messagesEndRef, jurisdiction, setJurisdiction, asAt, setAsAt }) => {
   const [inputMessage, setInputMessage] = useState('');
   const textareaRef = useRef(null);
 
@@ -192,6 +194,24 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
 
   return (
     <div className="h-full flex flex-col bg-background-primary">
+      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-4">
+        <div className="flex flex-wrap gap-3 items-end mb-2">
+          <div>
+            <label className="block text-xs text-text-secondary mb-1">Jurisdiction</label>
+            <select value={jurisdiction} onChange={e=>setJurisdiction(e.target.value)} className="bg-background-secondary border-1 border-border-subtle rounded px-2 py-1">
+              <option value="">All</option>
+              {jurisdictions.map(j => <option key={j} value={j}>{j}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-text-secondary mb-1">As at</label>
+            <input type="date" value={asAt} onChange={e=>setAsAt(e.target.value)} className="bg-background-secondary border-1 border-border-subtle rounded px-2 py-1" />
+          </div>
+          {asAt && (
+            <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">time-travel</span>
+          )}
+        </div>
+      </div>
       {messages.length === 0 ? (
         // Empty state with centered input
         <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 relative">
@@ -220,7 +240,7 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
             <div className="space-y-4 py-4 sm:py-6 max-w-4xl mx-auto w-full px-3 sm:px-4">
               {messages.map((message) => (
                 <Message key={message.id} message={message} />
-              ))}
+               ))}
               {isLoading && (
                 <div className="flex justify-start animate-fade-in">
                   <div className="flex items-center gap-2 text-text-placeholder text-base">

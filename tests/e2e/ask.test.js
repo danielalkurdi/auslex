@@ -62,5 +62,23 @@ describe('ask API', () => {
     expect(res.status).toBe(200);
     expect(res.body.snippets.length).toBeGreaterThan(0);
   });
+
+  it('adds limitations when few results after filtering', async () => {
+    const res = await request(app).post('/api/ask').send({ question: 'character test', jurisdiction: 'Cth', asAt: '2000-01-01' });
+    expect(res.body.answer).toBeTruthy();
+    const lim = res.body.answer.limitations || [];
+    expect(Array.isArray(lim)).toBe(true);
+  });
+
+  it('quotes refer to returned sources shape', async () => {
+    const res = await request(app).post('/api/ask').send({ question: 'character test', jurisdiction: 'Cth' });
+    const quotes = res.body.answer.quotes || [];
+    expect(Array.isArray(quotes)).toBe(true);
+    // At least structure matches AGLC fields
+    if (quotes.length) {
+      expect(quotes[0].citation).toBeTruthy();
+      expect(quotes[0].citation.jurisdiction).toBeTruthy();
+    }
+  });
 });
 

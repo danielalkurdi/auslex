@@ -1,14 +1,28 @@
 import fs from 'fs';
 import path from 'path';
 import { InMemoryVectorStore } from "../lib/rag/vectorStore";
+import { PgVectorStore } from "../lib/rag/vectorStore.pg";
 import { chunkByParagraph } from "../lib/rag/chunker";
 import { LegalMetadata } from "../lib/types/legal";
+import { OpenAIResponsesClient } from "../lib/llm/openai";
 
 async function main() {
-  const store = new InMemoryVectorStore();
+  const dbUrl = process.env.DATABASE_URL;
+  const usingPg = !!dbUrl;
+  const embedder = new OpenAIResponsesClient();
+  let memStore: InMemoryVectorStore | undefined;
+  let pgStore: PgVectorStore | undefined;
+  if (usingPg) {
+    pgStore = new PgVectorStore(dbUrl!);
+    await pgStore.init();
+  } else {
+    memStore = new InMemoryVectorStore();
+  }
 
   // Small sample ingestion from a local seed if present
-  const sampleDir = path.join(process.cwd(), 'sample-corpus');
+  const argIdx = process.argv.indexOf('--path');
+  const custom = argIdx !== -1 ? process.argv[argIdx + 1] : undefined;
+  const sampleDir = path.join(process.cwd(), custom || 'sample-corpus');
   if (!fs.existsSync(sampleDir)) {
     console.log('No sample-corpus directory found; creating with a tiny demo file.');
     fs.mkdirSync(sampleDir);
@@ -33,10 +47,18 @@ async function main() {
       version: 'demo'
     };
     const chunks = chunkByParagraph(path.basename(file, '.txt'), content, meta);
-    await store.upsert(chunks);
+    const embeddings = await embedder.embedTexts(chunks.map(c => c.text));
+    if (pgStore) {
+      await pgStore.upsert(chunks, embeddings);
+    } else if (memStore) {
+      await memStore.upsert(chunks, embeddings);
+    }
   }
-
-  console.log(`Ingested ${store.count()} chunks into in-memory store.`);
+  if (pgStore) {
+    console.log(`Ingested into pgvector store.`);
+  } else if (memStore) {
+    console.log(`Ingested ${memStore.count()} chunks into in-memory store.`);
+  }
 }
 
 main().catch(err => {

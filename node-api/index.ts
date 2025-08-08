@@ -3,15 +3,13 @@ import cors from 'cors';
 import { OpenAIResponsesClient } from "../lib/llm/openai";
 import { tools } from "../lib/llm/tools";
 import { AuslexAnswer } from "../lib/types/answers";
-import { VectorBackedRetriever, InMemoryVectorStore } from "../lib/rag/vectorStore";
+import { VectorBackedRetriever } from "../lib/rag/retriever";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ephemeral in-memory store and retriever for dev
-const store = new InMemoryVectorStore();
-const retriever = new VectorBackedRetriever(store);
+// Construct retriever per-request to avoid long-lived globals in serverless
 const llm = new OpenAIResponsesClient();
 
 app.post('/api/ask', async (req, res) => {
@@ -32,6 +30,7 @@ app.post('/api/ask', async (req, res) => {
 
   // Handle any tool calls (we only support search_corpus)
   let snippets: any[] = [];
+  const retriever = new VectorBackedRetriever();
   for (const call of toolResult.toolCalls || []) {
     if (call?.name === 'search_corpus') {
       const args = safeParseJSON(call.arguments) || {};
@@ -63,6 +62,16 @@ app.post('/api/ask', async (req, res) => {
     });
     content = correction.content;
   }
+
+  // Enrich limitations/confidence heuristics
+  try {
+    if (content) {
+      if (Array.isArray(snippets) && snippets.length < 2) {
+        content.limitations = Array.from(new Set([...(content.limitations || []), 'insufficient_retrieval']));
+        content.confidence = Math.min(content.confidence || 0.5, 0.6);
+      }
+    }
+  } catch {}
 
   return res.json({ answer: content, snippets });
 });
