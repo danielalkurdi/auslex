@@ -5,26 +5,28 @@ from pydantic import BaseModel, EmailStr
 import time
 import random
 import jwt
-import hashlib
 import json
 import os
+import secrets
 from datetime import datetime, timedelta
+from passlib.hash import bcrypt
 
 app = FastAPI(title="AusLex AI API", version="1.0.0")
 
 # Security
-SECRET_KEY = "your-secret-key-change-in-production"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY") or secrets.token_urlsafe(32)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 security = HTTPBearer()
 
 # Enable CORS
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend domain
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -82,10 +84,10 @@ class ProvisionResponse(BaseModel):
 
 # Helper functions
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    return bcrypt.hash(password)
 
 def verify_password(password: str, hashed: str) -> bool:
-    return hash_password(password) == hashed
+    return bcrypt.verify(password, hashed)
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
