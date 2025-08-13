@@ -20,6 +20,7 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
     "react-scripts": "5.0.1",
+    "@craco/craco": "^7.1.0",
     "remark-gfm": "^4.0.1",
     "supertest": "^7.1.4",
     "tailwindcss": "^3.3.2",
@@ -27,10 +28,10 @@
   },
   "scripts": {
     "preinstall": "npm config set legacy-peer-deps true || true",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "craco start",
+    "build": "craco build",
     "test": "jest --passWithNoTests",
-    "test:react": "react-scripts test",
+    "test:react": "craco test",
     "eject": "react-scripts eject",
     "dev:node": "ts-node-dev --respawn --transpile-only node-api/index.ts",
     "ingest": "ts-node scripts/ingest.ts",
@@ -77,10 +78,12 @@
   "overrides": {
     "ajv": "6.12.6",
     "ajv-keywords": "3.5.2",
-    "schema-utils": "3.3.0"
+    "fork-ts-checker-webpack-plugin": {
+      "schema-utils": "2.7.1"
+    }
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "jest": {
     "testEnvironment": "node",
