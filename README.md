@@ -1,6 +1,6 @@
 # AusLex AI - Australian Legal Assistant
 
-A modern web application for interacting with a GPT-20B model fine-tuned on Australian legal data. This application provides a professional interface for legal research, case law analysis, and legal assistance.
+A modern web application for interacting with OpenAI's gpt-oss-20b model fine-tuned on Australian legal data. This application provides a professional interface for legal research, case law analysis, and legal assistance.
 
 ## Features
 
@@ -153,61 +153,3 @@ For support or questions about the application, please open an issue in the repo
 - [ ] User authentication and conversation history
 - [ ] Integration with legal databases
 - [ ] Multi-language support 
-
-## RAG Quickstart
-
-Environment
-- Create `.env` in project root:
-  - `OPENAI_API_KEY=...`
-  - `DATABASE_URL=...` (optional, Postgres with pgvector)
-
-Node API
-- Start the Node RAG API: `npm run dev:node`
-- Default endpoint: `http://localhost:8787/api/ask`
-
-Ingestion
-- Use in-memory (default): `npm run ingest -- --path ./sample-corpus`
-- Use pgvector: set `DATABASE_URL` then run the same ingest command
-
-pgvector setup (Neon/Supabase)
-- Ensure `CREATE EXTENSION IF NOT EXISTS vector;` and optionally `pg_trgm` are enabled.
-
-Store selection
-- If `DATABASE_URL` is set, pgvector is used; otherwise an in-memory store is used for development.
-
-Schema & Branch
-- Neon branch for app traffic: `production`
-- All SQL targets schema: `auslex` (tables are qualified as `auslex.legal_snippets`)
-
-### Auth & Rate limiting
-### Deploy to Vercel
-- Set environment variables in Vercel Project Settings: `OPENAI_API_KEY`, `DATABASE_URL` (Neon pooled string), `PG_SSL=require`, `PG_POOL_MAX`, `PG_IDLE_TIMEOUT_MS`, `AUSLEX_API_KEY`, `RL_WINDOW_MS`, `RL_MAX`, `COHERE_API_KEY` (optional).
-- API routes use Node runtime (see `export const runtime = 'nodejs'`).
-- Bootstrap the database and ingest locally or via CI:
-  - `npm run db:provision`
-  - `npm run db:analyze`
-  - `npm run ingest -- --path ./sample-corpus`
-- Post-deploy checks:
-  - Open `/api/health` and confirm `{ ok:true, db:true, vector:"pg" }`.
-  - Run Eval page and `npm run eval`.
-  - Ask a sample question; verify SSE streaming.
-
-Troubleshooting
-
-## Operations
-
-CI & Nightly Eval
-- CI runs typecheck and tests on PRs and pushes to main. It optionally runs `npm run eval` when `OPENAI_API_KEY` is present and uploads artifacts.
-- Nightly Eval runs at 16:00 UTC (02:00 AEST standard). It uploads artifacts and comments a summary to the "Eval Results" issue. Fails if accuracy < `EVAL_MIN_ACCURACY` (default 0.8).
-
-Secrets
-- Add `OPENAI_API_KEY` (required for eval) and `DATABASE_URL` (optional for eval) to repository secrets.
-- Set `EVAL_MIN_ACCURACY` in repo variables to tune the nightly threshold.
-
-DB Snapshots
-- Trigger the DB snapshot workflow manually or wait for the weekly schedule (Sun 04:00 AEST).
-- It requires `DATABASE_URL` with a read-only or snapshot role. Artifacts are retained for 14 days.
-- Ensure Neon has `vector` extension enabled and indexes exist.
-- If SSE doesn’t stream, verify you are not on Edge runtime.
-- Set `AUSLEX_API_KEY` to enforce an API key via `x-auslex-key` header.
-- Rate limiting envs: `RL_WINDOW_MS` (default 60000), `RL_MAX` (default 60).
