@@ -18,8 +18,11 @@ function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [settings, setSettings] = useState({
-    apiEndpoint: process.env.REACT_APP_API_ENDPOINT || 'http://localhost:8000',
+  const [jurisdiction, setJurisdiction] = useState('');
+  const [asAt, setAsAt] = useState('');
+    const defaultApi = typeof window !== 'undefined' && window.location ? '' : 'http://localhost:8787';
+    const [settings, setSettings] = useState({
+      apiEndpoint: process.env.REACT_APP_API_ENDPOINT || defaultApi,
     maxTokens: 2048,
     temperature: 0.7,
     topP: 0.9,
@@ -150,17 +153,13 @@ function AppContent() {
     setIsChatLoading(true);
 
     try {
-      const response = await fetch(`${settings.apiEndpoint}/chat`, {
+      const base = settings.apiEndpoint || '';
+      const response = await fetch(`${base}/api/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message: message,
-          max_tokens: settings.maxTokens,
-          temperature: settings.temperature,
-          top_p: settings.topP,
-        }),
+        body: JSON.stringify({ question: message, jurisdiction: jurisdiction || undefined, asAt: asAt || undefined }),
       });
 
       if (!response.ok) {
@@ -168,22 +167,23 @@ function AppContent() {
       }
 
       const data = await response.json();
-      
-      // Validate and sanitize API response
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid response format');
       }
-      
-      const responseContent = data.response || data.message || 'No response received';
-      if (typeof responseContent !== 'string') {
-        throw new Error('Invalid response content');
-      }
-      
+      const responseContent = data?.answer?.answer || 'No answer';
+      if (typeof responseContent !== 'string') throw new Error('Invalid response content');
+
       const aiMessage = {
         id: uuidv4(),
         content: responseContent,
         role: 'assistant',
         timestamp: new Date().toISOString(),
+        structured: {
+          answer: data?.answer || null,
+          snippets: data?.snippets || [],
+          asAt: asAt || null,
+          jurisdiction: jurisdiction || null
+        }
       };
 
       setChats(prev => prev.map(chat =>
@@ -273,6 +273,10 @@ function AppContent() {
             onSendMessage={handleSendMessage}
             isLoading={isChatLoading}
             messagesEndRef={messagesEndRef}
+            jurisdiction={jurisdiction}
+            setJurisdiction={setJurisdiction}
+            asAt={asAt}
+            setAsAt={setAsAt}
           />
         ) : (
           <AboutUs />

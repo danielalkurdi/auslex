@@ -93,11 +93,11 @@ const SettingsPanel = React.memo(({ settings, onSettingsChange, onClose }) => {
                 onChange={(e) => handleChange('apiEndpoint', e.target.value)}
                 className="w-full bg-background-primary border-1 border-border-subtle rounded p-2 text-text-primary
                            placeholder-text-placeholder focus:border-accent-focus transition-colors duration-150"
-                placeholder="http://localhost:8000"
+                placeholder="http://localhost:8787"
                 aria-describedby="api-endpoint-desc"
               />
               <p id="api-endpoint-desc" className="text-xs text-text-placeholder mt-1">
-                The URL of your API endpoint
+                The URL of your API endpoint (Node RAG: http://localhost:8787)
               </p>
             </div>
 

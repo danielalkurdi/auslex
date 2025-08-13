@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Square } from 'lucide-react';
 import Message from './Message';
 import PropTypes from 'prop-types';
 
@@ -160,9 +160,14 @@ InputArea.propTypes = {
 
 InputArea.displayName = 'InputArea';
 
-const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messagesEndRef }) => {
+const jurisdictions = ['Cth','NSW','VIC','QLD','WA','SA','TAS','NT','ACT','HCA','FCA','FCCA','FCAAFC','NSWCA'];
+
+const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messagesEndRef, jurisdiction, setJurisdiction, asAt, setAsAt }) => {
   const [inputMessage, setInputMessage] = useState('');
   const textareaRef = useRef(null);
+  const [streaming, setStreaming] = useState(true);
+  const [controller, setController] = useState(null);
+  const [liveSnippets, setLiveSnippets] = useState([]);
 
 
   const welcomeMessages = useMemo(() => {
@@ -177,10 +182,50 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
     if (inputMessage.trim() && !isLoading) {
-      onSendMessage(inputMessage);
+      if (streaming && window?.ReadableStream) {
+        const abort = new AbortController();
+        setController(abort);
+        const base = process.env.REACT_APP_API_ENDPOINT || 'http://localhost:8787';
+        const url = new URL(base + '/api/ask');
+        url.searchParams.set('stream', '1');
+        fetch(url.toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: inputMessage, jurisdiction: jurisdiction || undefined, asAt: asAt || undefined }),
+          signal: abort.signal
+        }).then(async (resp) => {
+          if (!resp.ok) throw new Error('stream failed');
+          const reader = resp.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let provisional = '';
+          setLiveSnippets([]);
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const events = buffer.split('\n\n');
+            buffer = events.pop() || '';
+            for (const evt of events) {
+              const lines = evt.split('\n');
+              const type = (lines.find(l=>l.startsWith('event:'))||'').replace('event:','').trim();
+              const dataLine = (lines.find(l=>l.startsWith('data:'))||'');
+              const dataRaw = dataLine.slice(6);
+              try {
+                const data = JSON.parse(dataRaw);
+                if (type === 'snippets') setLiveSnippets(data);
+                if (type === 'delta' && data.proseFragment) provisional += data.proseFragment;
+                if (type === 'done') onSendMessage(inputMessage);
+              } catch {}
+            }
+          }
+        }).catch(() => {}).finally(() => setController(null));
+      } else {
+        onSendMessage(inputMessage);
+      }
       setInputMessage('');
     }
-  }, [inputMessage, isLoading, onSendMessage]);
+  }, [inputMessage, isLoading, onSendMessage, streaming, jurisdiction, asAt]);
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -192,6 +237,24 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
 
   return (
     <div className="h-full flex flex-col bg-background-primary">
+      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 pt-4">
+        <div className="flex flex-wrap gap-3 items-end mb-2">
+          <div>
+            <label className="block text-xs text-text-secondary mb-1">Jurisdiction</label>
+            <select value={jurisdiction} onChange={e=>setJurisdiction(e.target.value)} className="bg-background-secondary border-1 border-border-subtle rounded px-2 py-1">
+              <option value="">All</option>
+              {jurisdictions.map(j => <option key={j} value={j}>{j}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-text-secondary mb-1">As at</label>
+            <input type="date" value={asAt} onChange={e=>setAsAt(e.target.value)} className="bg-background-secondary border-1 border-border-subtle rounded px-2 py-1" />
+          </div>
+          {asAt && (
+            <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">time-travel</span>
+          )}
+        </div>
+      </div>
       {messages.length === 0 ? (
         // Empty state with centered input
         <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 relative">
@@ -218,9 +281,19 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
         <>
           <div className="flex-1 overflow-y-auto">
             <div className="space-y-4 py-4 sm:py-6 max-w-4xl mx-auto w-full px-3 sm:px-4">
+              {liveSnippets.length > 0 && (
+                <div className="p-2 bg-background-secondary rounded border-1 border-border-subtle">
+                  <div className="text-xs text-text-secondary mb-1">Likely sources</div>
+                  <ul className="text-sm list-disc pl-5">
+                    {liveSnippets.map(s => (
+                      <li key={s.id}><a className="text-accent underline" href={s.url} target="_blank" rel="noreferrer">{s.title} {s.provision || s.paragraph || ''}</a></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {messages.map((message) => (
                 <Message key={message.id} message={message} />
-              ))}
+               ))}
               {isLoading && (
                 <div className="flex justify-start animate-fade-in">
                   <div className="flex items-center gap-2 text-text-placeholder text-base">
@@ -242,6 +315,12 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
             textareaRef={textareaRef}
             isFloating={false}
           />
+          <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 pb-3 flex items-center gap-3">
+            <label className="text-xs flex items-center gap-2"><input type="checkbox" checked={streaming} onChange={e=>setStreaming(e.target.checked)} /> Stream answers</label>
+            {controller && (
+              <button className="text-xs px-2 py-1 rounded bg-red-600 text-white flex items-center gap-1" onClick={()=>{ controller.abort(); setController(null); }}><Square className="w-3 h-3"/> Cancel</button>
+            )}
+          </div>
         </>
       )}
     </div>
