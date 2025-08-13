@@ -5,7 +5,9 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build"
+        "distDir": "build",
+        "installCommand": "npm install --legacy-peer-deps",
+        "buildCommand": "npm run build"
       }
     },
     {
@@ -13,6 +15,7 @@
       "use": "@vercel/python"
     }
   ],
+  "buildCommand": "npm install --legacy-peer-deps && npm run build",
   "routes": [
     {
       "src": "/api",
