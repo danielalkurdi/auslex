@@ -77,6 +77,7 @@ export class PgVectorStore implements VectorStore {
       try { await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS legal_snippets_hash_uq ON auslex.legal_snippets(content_hash);`); } catch {}
       // Skip ANN index creation to remain compatible with environments where ivfflat/HNSW may be unavailable
       try { await c.query(`CREATE INDEX IF NOT EXISTS legal_snippets_juris_idx ON auslex.legal_snippets (jurisdiction);`); } catch {}
+      try { await c.query(`ANALYZE auslex.legal_snippets;`); } catch {}
     });
   }
 
@@ -136,7 +137,11 @@ export class PgVectorStore implements VectorStore {
   async similaritySearch(params: { queryEmbedding: number[]; jurisdiction?: string; asAt?: string; limit: number }): Promise<LegalSnippet[]> {
     const { queryEmbedding, jurisdiction, asAt, limit } = params;
     const filters: string[] = [];
-    const vals: any[] = [queryEmbedding];
+    // Ensure pgvector receives a properly formatted vector literal
+    const embParam = Array.isArray(queryEmbedding)
+      ? `[${queryEmbedding.join(',')}]`
+      : (queryEmbedding as unknown as string);
+    const vals: any[] = [embParam];
     if (jurisdiction) {
       vals.push(jurisdiction);
       filters.push(`jurisdiction = $${vals.length}`);
@@ -148,13 +153,12 @@ export class PgVectorStore implements VectorStore {
       filters.push(`(date_in_force_from IS NULL AND date_in_force_to IS NULL OR ($${idx} BETWEEN date_in_force_from AND COALESCE(date_in_force_to, '9999-12-31'))) `);
     }
     const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-    // hybrid scoring placeholder using pg_trgm; ignore if not installed
+    // Use pure vector similarity by default to avoid requiring pg_trgm extension
     const sql = `
       SELECT id, text, jurisdiction, source_type, court_or_publisher, title, citation, provision, paragraph, url,
              date_made, date_in_force_from, date_in_force_to, version,
-             (1 - (embedding <=> $1)) as sim,
-             COALESCE(similarity(text, ' '), 0) as textscore,
-             (0.7 * (1 - (embedding <=> $1)) + 0.3 * COALESCE(similarity(text, ' '), 0)) as score
+             (1 - (embedding <=> $1::vector)) as sim,
+             (1 - (embedding <=> $1::vector)) as score
       FROM auslex.legal_snippets
       ${where}
       ORDER BY score DESC
