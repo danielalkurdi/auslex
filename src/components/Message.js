@@ -43,31 +43,12 @@ const Message = React.memo(({ message }) => {
             {message.content}
           </ReactMarkdown>
         ) : (
-          <div>
-            <CitationText
-              text={message.content}
-              citationStyle="link"
-              className="prose prose-sm max-w-none"
-            />
-            {message.structured?.answer?.quotes?.length > 0 && (
-              <details className="mt-3">
-                <summary className="cursor-pointer text-sm text-text-primary">Quotes and sources</summary>
-                <div className="mt-2 space-y-2">
-                  {message.structured.answer.quotes.map((q, idx) => (
-                    <div key={idx} className="p-2 bg-background-secondary rounded border-1 border-border-subtle">
-                      <div className="text-sm mb-1">{q.text}</div>
-                      <div className="text-xs text-text-secondary">
-                        {q.citation.title || q.citation.citation || ''} {q.citation.provision || q.citation.paragraph || ''} ({q.citation.jurisdiction})
-                        {q.citation.url && (
-                          <a className="ml-2 text-accent underline" href={q.citation.url} target="_blank" rel="noreferrer">Open</a>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            )}
-          </div>
+          // For assistant messages, use CitationText to handle legal citations
+          <CitationText
+            text={message.content}
+            citationStyle="link"
+            className="prose prose-sm max-w-none"
+          />
         )}
         {isError && (
           <p className="text-sm sm:text-base mt-2 text-status-warning opacity-80">
