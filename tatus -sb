@@ -1,0 +1,24 @@
+* [33med83eb2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfix/hnsw-index-and-rebuild[m[33m, [m[1;31morigin/fix/hnsw-index-and-rebuild[m[33m)[m Implement feature X to enhance user experience and fix bug Y in module Z
+* [33mc3e591e[m fix: correct Vercel deployment configuration for Create React App
+* [33m47459a2[m fix: resolve favicon 404 error by updating HTML favicon references
+* [33m26f9e5d[m chore: update .gitignore to include additional environment, log, and cache files; remove requirements.txt; update Dockerfile to use Node 22; modify PgVectorStore constructor for optional database URL; update TypeScript version in package.json; add new code reviewer and security auditor agents; remove CLAUDE.md and README_UPDATED.md
+* [33m2575d27[m Update package.json and vercel.json to use craco
+*   [33m82365ad[m Merge branch 'fix/hnsw-index-and-rebuild' of https://github.com/danielalkurdi/auslex into fix/hnsw-index-and-rebuild
+[32m|[m[33m\[m  
+[32m|[m *   [33m8af1ea3[m Merge branch 'main' into fix/hnsw-index-and-rebuild
+[32m|[m [34m|[m[35m\[m  
+[32m|[m [34m|[m * [33m4299bc1[m Update README.md
+* [34m|[m [35m|[m [33m75c5068[m chore: update package dependencies and configurations; set legacy peer dependencies for npm install; adjust TypeScript version and add engine requirements
+[34m|[m[34m/[m [35m/[m  
+* [35m|[m [33m75e5085[m chore: update Dockerfile to install all dependencies; enhance PgVectorStore with ANALYZE command and improved vector handling; refactor server import for retriever
+* [35m|[m [33mf0f1b53[m refactor(db): replace pg types with minimal local types to avoid runtime dependencies; enhance OpenAIResponsesClient with type safety; improve PgVectorStore with better type handling and source type coercion; enforce API key requirement in ingest script; update IVFF creation logic based on embedding dimension
+* [35m|[m [33mdec7215[m[33m ([m[1;32mops/full-ingest-and-ivff[m[33m, [m[1;32mfix/pg-typing-ingest[m[33m)[m ops: schema-qualify auslex, add guarded IVFF creation and smoke check, update README
+* [35m|[m [33mdc544eb[m[33m ([m[1;31morigin/ci-eval-backups[m[33m, [m[1;32mci-eval-backups[m[33m)[m ci: add CI workflow with typecheck/tests and optional eval artifacts
+* [35m|[m [33ma0250ae[m[33m ([m[1;31morigin/feat/deploy-vercel-neon-health[m[33m, [m[1;32mfeat/deploy-vercel-neon-health[m[33m)[m feat(vercel): Next.js API routes (ask/health) with Node runtime; scripts for Neon provision; eval CLI Windows fallback; default UI to relative API; Admin Health guard; docs
+* [35m|[m [33m4c4b2dd[m[33m ([m[1;32mfeat/rag-gpt5[m[33m)[m feat(db): pg pool helper and pgvector store uses withClient; feat(ingest): content hash dedupe + flags; feat(rag): pluggable reranker; feat(api): auth + rate limiting; docs+tests
+* [35m|[m [33m614c8f5[m feat(api): add SSE streaming for /api/ask with snippets/delta/done + telemetry; feat(ui): live snippets preview, stream toggle, cancel
+* [35m|[m [33m2d3d466[m feat(rag): add pgvector store, embeddings, real retriever; wire API; UI controls and quotes; ingest CLI flag; docs; tests
+* [35m|[m [33m3a27ae6[m test(e2e): add ask API test with stub retriever and CJS server shim; wire jest setup
+* [35m|[m [33ma26eaeb[m feat(rag): scaffold TS config, types, retriever/vector store, LLM tools, system prompt, ingest script, Node API /api/ask, and e2e test harness
+[35m|[m[35m/[m  
+* [33m2fcf39d[m[33m ([m[1;32mmain[m[33m)[m Add Vercel API routing and update FastAPI endpoints for prefixed access
