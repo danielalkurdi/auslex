@@ -40,7 +40,7 @@ function coerceSourceType(value: string | null): SourceType {
 }
 
 export class PgVectorStore implements VectorStore {
-  constructor(databaseUrl: string) {}
+  constructor(databaseUrl?: string) {}
 
   async init(): Promise<void> {
     await withClient(async c => {
@@ -74,10 +74,22 @@ export class PgVectorStore implements VectorStore {
           throw err;
         }
       }
-      try { await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS legal_snippets_hash_uq ON auslex.legal_snippets(content_hash);`); } catch {}
+      try { 
+        await c.query(`CREATE UNIQUE INDEX IF NOT EXISTS legal_snippets_hash_uq ON auslex.legal_snippets(content_hash);`); 
+      } catch (err: any) {
+        console.warn('Failed to create content_hash index:', err?.message);
+      }
       // Skip ANN index creation to remain compatible with environments where ivfflat/HNSW may be unavailable
-      try { await c.query(`CREATE INDEX IF NOT EXISTS legal_snippets_juris_idx ON auslex.legal_snippets (jurisdiction);`); } catch {}
-      try { await c.query(`ANALYZE auslex.legal_snippets;`); } catch {}
+      try { 
+        await c.query(`CREATE INDEX IF NOT EXISTS legal_snippets_juris_idx ON auslex.legal_snippets (jurisdiction);`); 
+      } catch (err: any) {
+        console.warn('Failed to create jurisdiction index:', err?.message);
+      }
+      try { 
+        await c.query(`ANALYZE auslex.legal_snippets;`); 
+      } catch (err: any) {
+        console.warn('Failed to analyze table:', err?.message);
+      }
     });
   }
 
