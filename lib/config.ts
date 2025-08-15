@@ -1,5 +1,5 @@
 export const MODELS = {
-  reasoner: "gpt-5",
+  reasoner: "gpt-4o",
   embedding: "text-embedding-3-large"
 } as const;
 

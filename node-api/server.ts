@@ -3,8 +3,7 @@ import cors from 'cors';
 import { OpenAIResponsesClient } from "../lib/llm/openai";
 import { tools } from "../lib/llm/tools";
 import { AuslexAnswer } from "../lib/types/answers";
-import { VectorBackedRetriever } from "../lib/rag/retriever";
-import { Retriever } from "../lib/rag/retriever";
+import { VectorBackedRetriever, Retriever } from "../lib/rag/retriever";
 
 export function createServer(deps?: { retriever?: Retriever; llm?: OpenAIResponsesClient }) {
   const app = express();
