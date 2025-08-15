@@ -10,6 +10,11 @@ import os
 import secrets
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
+from typing import List, Literal, Optional
+
+import torch
+from transformers import AutoTokenizer, AutoModel
+from openai import OpenAI
 
 app = FastAPI(title="AusLex AI API", version="1.0.0")
 
@@ -71,6 +76,32 @@ class ChatResponse(BaseModel):
     tokens_used: int
     processing_time: float
 
+class EmbeddingRequest(BaseModel):
+    texts: List[str]
+    normalize: bool = True
+    pooling: Literal["mean", "cls"] = "mean"
+
+class EmbeddingResponse(BaseModel):
+    embeddings: List[List[float]]
+    model: str
+
+class RAGCitedPassage(BaseModel):
+    index: int
+    text: str
+    score: float
+
+class RAGRequest(BaseModel):
+    query: str
+    documents: List[str]
+    top_k: int = 5
+    temperature: float = 0.3
+    max_tokens: int = 600
+    model: str = "gpt-5"
+
+class RAGResponse(BaseModel):
+    answer: str
+    citations: List[RAGCitedPassage]
+
 class ProvisionRequest(BaseModel):
     act_name: str
     year: str
@@ -118,6 +149,92 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         return users_db[user_id]
     except pyjwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+# -----------------------------
+# EmuBERT embeddings utilities
+# -----------------------------
+EMUBERT_MODEL_NAME = "isaacus/emubert"
+_embedding_tokenizer: Optional[AutoTokenizer] = None
+_embedding_model: Optional[AutoModel] = None
+_embedding_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def _ensure_embedding_model_loaded():
+    global _embedding_tokenizer, _embedding_model
+    if _embedding_tokenizer is None or _embedding_model is None:
+        _embedding_tokenizer = AutoTokenizer.from_pretrained(EMUBERT_MODEL_NAME)
+        _embedding_model = AutoModel.from_pretrained(EMUBERT_MODEL_NAME)
+        _embedding_model.to(_embedding_device)
+        _embedding_model.eval()
+
+def _mean_pool(last_hidden_state: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
+    sum_embeddings = torch.sum(last_hidden_state * input_mask_expanded, dim=1)
+    sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
+    return sum_embeddings / sum_mask
+
+def _cls_pool(last_hidden_state: torch.Tensor) -> torch.Tensor:
+    return last_hidden_state[:, 0]
+
+def get_emubert_embeddings(texts: List[str], normalize: bool = True, pooling: str = "mean") -> List[List[float]]:
+    _ensure_embedding_model_loaded()
+    assert _embedding_tokenizer is not None and _embedding_model is not None
+
+    with torch.no_grad():
+        encoded = _embedding_tokenizer(
+            texts,
+            padding=True,
+            truncation=True,
+            max_length=512,
+            return_tensors="pt",
+        )
+        encoded = {k: v.to(_embedding_device) for k, v in encoded.items()}
+        outputs = _embedding_model(**encoded)
+        last_hidden_state = outputs.last_hidden_state
+        if pooling == "cls":
+            pooled = _cls_pool(last_hidden_state)
+        else:
+            pooled = _mean_pool(last_hidden_state, encoded["attention_mask"]) 
+        if normalize:
+            pooled = torch.nn.functional.normalize(pooled, p=2, dim=1)
+        return pooled.cpu().tolist()
+
+def _rank_documents_with_emubert(query: str, documents: List[str], top_k: int) -> List[RAGCitedPassage]:
+    if not documents:
+        return []
+    query_vec = get_emubert_embeddings([query], normalize=True)[0]
+    doc_vecs = get_emubert_embeddings(documents, normalize=True)
+    import math
+    scores: List[float] = []
+    for v in doc_vecs:
+        s = sum(a*b for a, b in zip(query_vec, v))
+        scores.append(float(s))
+    ranked = sorted(enumerate(scores), key=lambda x: x[1], reverse=True)[: max(1, top_k)]
+    return [RAGCitedPassage(index=i, text=documents[i], score=score) for i, score in ranked]
+
+def _generate_with_openai(query: str, passages: List[RAGCitedPassage], model: str, temperature: float, max_tokens: int) -> str:
+    client = OpenAI()
+    context_lines = []
+    for idx, p in enumerate(passages, start=1):
+        context_lines.append(f"[{idx}] {p.text}")
+    context_block = "\n".join(context_lines)
+    messages = [
+        {"role": "system", "content": (
+            "You are an Australian legal assistant. Use only the provided passages as sources. "
+            "Cite using bracketed numbers like [1], [2]. If unsure or unsupported by the passages, say you don't know. "
+            "Educational use only; not legal advice."
+        )},
+        {"role": "user", "content": (
+            f"Question: {query}\n\nPassages:\n{context_block}\n\n"
+            "Answer the question with clear citations [n] after each claim."
+        )},
+    ]
+    resp = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    return resp.choices[0].message.content if resp.choices else ""
 
 # Sample legal responses for demonstration
 SAMPLE_RESPONSES = [
@@ -399,6 +516,47 @@ Click on any of the highlighted citations above to see a popup displaying the ac
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+@app.post("/embeddings", response_model=EmbeddingResponse)
+async def embeddings(req: EmbeddingRequest):
+    try:
+        if not req.texts:
+            raise HTTPException(status_code=400, detail="texts must be a non-empty list")
+        vectors = get_emubert_embeddings(req.texts, normalize=req.normalize, pooling=req.pooling)
+        return EmbeddingResponse(embeddings=vectors, model=EMUBERT_MODEL_NAME)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating embeddings: {str(e)}")
+
+@app.post("/api/embeddings", response_model=EmbeddingResponse)
+async def embeddings_prefixed(req: EmbeddingRequest):
+    return await embeddings(req)
+
+@app.post("/rag/answer", response_model=RAGResponse)
+async def rag_answer(req: RAGRequest):
+    try:
+        if not req.query:
+            raise HTTPException(status_code=400, detail="query is required")
+        if not req.documents:
+            raise HTTPException(status_code=400, detail="documents must be a non-empty list")
+        top_passages = _rank_documents_with_emubert(req.query, req.documents, req.top_k)
+        answer = _generate_with_openai(
+            query=req.query,
+            passages=top_passages,
+            model=req.model,
+            temperature=req.temperature,
+            max_tokens=req.max_tokens,
+        )
+        return RAGResponse(answer=answer, citations=top_passages)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating RAG answer: {str(e)}")
+
+@app.post("/api/rag/answer", response_model=RAGResponse)
+async def rag_answer_prefixed(req: RAGRequest):
+    return await rag_answer(req)
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_prefixed(request: ChatRequest):
