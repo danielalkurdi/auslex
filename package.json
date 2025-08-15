@@ -81,7 +81,7 @@
     }
   },
   "engines": {
-    "node": "22.x"
+    "node": "20.x"
   },
   "jest": {
     "testEnvironment": "node",
