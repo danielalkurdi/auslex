@@ -11,9 +11,6 @@ import secrets
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
 from typing import List, Literal, Optional
-
-import torch
-from transformers import AutoTokenizer, AutoModel
 from openai import OpenAI
 
 app = FastAPI(title="AusLex AI API", version="1.0.0")
@@ -151,65 +148,29 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 # -----------------------------
-# EmuBERT embeddings utilities
+# Lightweight embeddings (serverless-safe)
 # -----------------------------
-EMUBERT_MODEL_NAME = "isaacus/emubert"
-_embedding_tokenizer: Optional[AutoTokenizer] = None
-_embedding_model: Optional[AutoModel] = None
-_embedding_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def _ensure_embedding_model_loaded():
-    global _embedding_tokenizer, _embedding_model
-    if _embedding_tokenizer is None or _embedding_model is None:
-        _embedding_tokenizer = AutoTokenizer.from_pretrained(EMUBERT_MODEL_NAME)
-        _embedding_model = AutoModel.from_pretrained(EMUBERT_MODEL_NAME)
-        _embedding_model.to(_embedding_device)
-        _embedding_model.eval()
-
-def _mean_pool(last_hidden_state: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
-    input_mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
-    sum_embeddings = torch.sum(last_hidden_state * input_mask_expanded, dim=1)
-    sum_mask = torch.clamp(input_mask_expanded.sum(dim=1), min=1e-9)
-    return sum_embeddings / sum_mask
-
-def _cls_pool(last_hidden_state: torch.Tensor) -> torch.Tensor:
-    return last_hidden_state[:, 0]
-
-def get_emubert_embeddings(texts: List[str], normalize: bool = True, pooling: str = "mean") -> List[List[float]]:
-    _ensure_embedding_model_loaded()
-    assert _embedding_tokenizer is not None and _embedding_model is not None
-
-    with torch.no_grad():
-        encoded = _embedding_tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            max_length=512,
-            return_tensors="pt",
-        )
-        encoded = {k: v.to(_embedding_device) for k, v in encoded.items()}
-        outputs = _embedding_model(**encoded)
-        last_hidden_state = outputs.last_hidden_state
-        if pooling == "cls":
-            pooled = _cls_pool(last_hidden_state)
-        else:
-            pooled = _mean_pool(last_hidden_state, encoded["attention_mask"]) 
-        if normalize:
-            pooled = torch.nn.functional.normalize(pooled, p=2, dim=1)
-        return pooled.cpu().tolist()
-
-def _rank_documents_with_emubert(query: str, documents: List[str], top_k: int) -> List[RAGCitedPassage]:
-    if not documents:
-        return []
-    query_vec = get_emubert_embeddings([query], normalize=True)[0]
-    doc_vecs = get_emubert_embeddings(documents, normalize=True)
+def _l2_normalize(vecs: List[List[float]]) -> List[List[float]]:
     import math
-    scores: List[float] = []
-    for v in doc_vecs:
-        s = sum(a*b for a, b in zip(query_vec, v))
-        scores.append(float(s))
-    ranked = sorted(enumerate(scores), key=lambda x: x[1], reverse=True)[: max(1, top_k)]
-    return [RAGCitedPassage(index=i, text=documents[i], score=score) for i, score in ranked]
+    out: List[List[float]] = []
+    for v in vecs:
+        norm = math.sqrt(sum(x * x for x in v)) or 1.0
+        out.append([x / norm for x in v])
+    return out
+
+def _openai_embed(texts: List[str]) -> List[List[float]]:
+    client = OpenAI()
+    resp = client.embeddings.create(model="text-embedding-3-small", input=texts)
+    return [d.embedding for d in resp.data]
+
+def get_embeddings(texts: List[str], normalize: bool = True) -> (List[List[float]], str):
+    vecs = _openai_embed(texts)
+    if normalize:
+        vecs = _l2_normalize(vecs)
+    return vecs, "text-embedding-3-small"
+
+# OpenAI generation
 
 def _generate_with_openai(query: str, passages: List[RAGCitedPassage], model: str, temperature: float, max_tokens: int) -> str:
     client = OpenAI()
@@ -522,8 +483,8 @@ async def embeddings(req: EmbeddingRequest):
     try:
         if not req.texts:
             raise HTTPException(status_code=400, detail="texts must be a non-empty list")
-        vectors = get_emubert_embeddings(req.texts, normalize=req.normalize, pooling=req.pooling)
-        return EmbeddingResponse(embeddings=vectors, model=EMUBERT_MODEL_NAME)
+        vectors, used_model = get_embeddings(req.texts, normalize=req.normalize)
+        return EmbeddingResponse(embeddings=vectors, model=used_model)
     except HTTPException:
         raise
     except Exception as e:
@@ -540,7 +501,16 @@ async def rag_answer(req: RAGRequest):
             raise HTTPException(status_code=400, detail="query is required")
         if not req.documents:
             raise HTTPException(status_code=400, detail="documents must be a non-empty list")
-        top_passages = _rank_documents_with_emubert(req.query, req.documents, req.top_k)
+        # Rank with OpenAI embeddings (serverless-safe)
+        query_vec, _ = get_embeddings([req.query], normalize=True)
+        doc_vecs, _ = get_embeddings(req.documents, normalize=True)
+        scores: List[float] = []
+        for v in doc_vecs:
+            s = sum(a*b for a, b in zip(query_vec[0], v))
+            scores.append(float(s))
+        ranked = sorted(enumerate(scores), key=lambda x: x[1], reverse=True)[: max(1, req.top_k)]
+        top_passages = [RAGCitedPassage(index=i, text=req.documents[i], score=score) for i, score in ranked]
+
         answer = _generate_with_openai(
             query=req.query,
             passages=top_passages,
