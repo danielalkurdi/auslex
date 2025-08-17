@@ -67,7 +67,7 @@ class ChatRequest(BaseModel):
     max_tokens: int = 2048
     temperature: float = 0.7
     top_p: float = 0.9
-    enable_web_search: bool = False
+    enable_web_search: bool = True
     web_search_depth: Literal["basic", "advanced"] = "basic"
     web_search_k: int = 5
 
@@ -183,6 +183,7 @@ def _chat_with_openai_web_search(message: str, temperature: float, max_tokens: i
         resp = client.responses.create(
             model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
             tools=[{"type": "web_search"}],
+            tool_choice="auto",
             input=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": message},
@@ -197,6 +198,7 @@ def _chat_with_openai_web_search(message: str, temperature: float, max_tokens: i
             resp = client.responses.create(
                 model=fallback,
                 tools=[{"type": "web_search"}],
+                tool_choice="auto",
                 input=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": message},
