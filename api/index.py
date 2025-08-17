@@ -67,6 +67,9 @@ class ChatRequest(BaseModel):
     max_tokens: int = 2048
     temperature: float = 0.7
     top_p: float = 0.9
+    enable_web_search: bool = False
+    web_search_depth: Literal["basic", "advanced"] = "basic"
+    web_search_k: int = 5
 
 class ChatResponse(BaseModel):
     response: str
@@ -169,6 +172,42 @@ def _create_openai_client() -> OpenAI:
     if project:
         kwargs["project"] = project
     return OpenAI(**kwargs)
+
+def _chat_with_openai_web_search(message: str, temperature: float, max_tokens: int, top_p: float) -> str:
+    client = _create_openai_client()
+    system_prompt = (
+        "You are an Australian legal assistant. Be concise, accurate, and cite legislation, "
+        "cases, and official sources. Educational use only; not legal advice."
+    )
+    try:
+        resp = client.responses.create(
+            model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
+            tools=[{"type": "web_search"}],
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message},
+            ],
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            top_p=top_p,
+        )
+    except Exception:
+        fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
+        if os.getenv("OPENAI_ENABLE_FALLBACK", "1") == "1" and os.getenv("OPENAI_CHAT_MODEL") != fallback:
+            resp = client.responses.create(
+                model=fallback,
+                tools=[{"type": "web_search"}],
+                input=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message},
+                ],
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+                top_p=top_p,
+            )
+        else:
+            raise
+    return getattr(resp, "output_text", "")
 
 def _l2_normalize(vecs: List[List[float]]) -> List[List[float]]:
     import math
@@ -281,11 +320,11 @@ MOCK_PROVISIONS_DB = {
 
 <p><strong>Character test</strong><br>
 (6) For the purposes of this section, a person does not pass the character test if:<br>
-    (a) the person has a substantial criminal record (as defined by subsection (7)); or<br>
-    (b) the person has or has had an association with someone else, or with a group or organisation, whom the Minister reasonably suspects has been or is involved in criminal conduct; or<br>
-    (c) having regard to either or both of the following:<br>
-        (i) the person's past and present criminal conduct;<br>
-        (ii) the person's past and present general conduct;<br>
+    (a) the person has a substantial criminal record (as defined by subsection (7)); or
+    (b) the person has or has had an association with someone else, or with a group or organisation, whom the Minister reasonably suspects has been or is involved in criminal conduct; or
+    (c) having regard to either or both of the following:
+        (i) the person's past and present criminal conduct;
+        (ii) the person's past and present general conduct;
     the person is not of good character.</p>""",
         "metadata": {
             "title": "Refusal or cancellation of visa on character grounds",
@@ -327,12 +366,12 @@ MOCK_PROVISIONS_DB = {
     },
     "corporations_act_2001_cth_s_181": {
         "provision_text": """<p>(1) A director or other officer of a corporation must exercise their powers and discharge their duties:<br>
-    (a) in good faith in the best interests of the corporation; and<br>
+    (a) in good faith in the best interests of the corporation; and
     (b) for a proper purpose.</p>
 
 <p>(2) A person who is involved in a contravention of subsection (1) contravenes this subsection.</p>
 
-<p><strong>Note 1:</strong> Section 79 defines involved.<br>
+<p><strong>Note 1:</strong> Section 79 defines involved.
 <strong>Note 2:</strong> This section is a civil penalty provision (see section 1317E).</p>""",
         "metadata": {
             "title": "Good faith—civil obligations",
@@ -469,37 +508,45 @@ async def chat(request: ChatRequest):
 
 Click on any of the highlighted citations above to see a popup displaying the actual AustLII content. This demonstrates direct integration with AustLII's database showing real Australian legal provisions and cases."""
         else:
-            # Use OpenAI for general chat with model fallback
-            model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
-            fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
-            client = _create_openai_client()
-            messages = [
-                {"role": "system", "content": (
-                    "You are an Australian legal assistant. Be concise, accurate, and cite legislation or cases where relevant. "
-                    "Educational use only; not legal advice."
-                )},
-                {"role": "user", "content": request.message},
-            ]
-            try:
-                completion = client.chat.completions.create(
-                    model=model,
-                    messages=messages,
+            # Use OpenAI for general chat, optionally with built-in web_search tool
+            if request.enable_web_search:
+                response = _chat_with_openai_web_search(
+                    message=request.message,
                     temperature=request.temperature,
                     max_tokens=request.max_tokens,
                     top_p=request.top_p,
                 )
-            except Exception:
-                if os.getenv("OPENAI_ENABLE_FALLBACK", "1") == "1" and model != fallback:
+            else:
+                model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+                fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
+                client = _create_openai_client()
+                messages = [
+                    {"role": "system", "content": (
+                        "You are an Australian legal assistant. Be concise, accurate, and cite legislation or cases where relevant. "
+                        "Educational use only; not legal advice."
+                    )},
+                    {"role": "user", "content": request.message},
+                ]
+                try:
                     completion = client.chat.completions.create(
-                        model=fallback,
+                        model=model,
                         messages=messages,
                         temperature=request.temperature,
                         max_tokens=request.max_tokens,
                         top_p=request.top_p,
                     )
-                else:
-                    raise
-            response = completion.choices[0].message.content if completion.choices else ""
+                except Exception:
+                    if os.getenv("OPENAI_ENABLE_FALLBACK", "1") == "1" and model != fallback:
+                        completion = client.chat.completions.create(
+                            model=fallback,
+                            messages=messages,
+                            temperature=request.temperature,
+                            max_tokens=request.max_tokens,
+                            top_p=request.top_p,
+                        )
+                    else:
+                        raise
+                response = completion.choices[0].message.content if completion.choices else ""
         
         # Calculate approximate tokens used
         tokens_used = len(response.split()) + len(request.message.split())

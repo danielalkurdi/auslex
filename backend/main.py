@@ -67,6 +67,9 @@ class ChatRequest(BaseModel):
     max_tokens: int = 2048
     temperature: float = 0.7
     top_p: float = 0.9
+    enable_web_search: bool = False
+    web_search_depth: Literal["basic", "advanced"] = "basic"
+    web_search_k: int = 5
 
 class ChatResponse(BaseModel):
     response: str
@@ -213,6 +216,41 @@ def _create_openai_client() -> OpenAI:
     if project:
         kwargs["project"] = project
     return OpenAI(**kwargs)
+
+def _chat_with_openai_web_search(message: str, temperature: float, max_tokens: int, top_p: float) -> str:
+    client = _create_openai_client()
+    system_prompt = (
+        "You are an Australian legal assistant. Be concise, accurate, and cite legislation, "
+        "cases, and official sources. Educational use only; not legal advice."
+    )
+    try:
+        resp = client.responses.create(
+            model=OPENAI_CHAT_MODEL,
+            tools=[{"type": "web_search"}],
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message},
+            ],
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            top_p=top_p,
+        )
+    except Exception:
+        if OPENAI_ENABLE_FALLBACK == "1" and OPENAI_CHAT_MODEL != OPENAI_FALLBACK_MODEL:
+            resp = client.responses.create(
+                model=OPENAI_FALLBACK_MODEL,
+                tools=[{"type": "web_search"}],
+                input=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message},
+                ],
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+                top_p=top_p,
+            )
+        else:
+            raise
+    return getattr(resp, "output_text", "")
 
 def _rank_documents_with_emubert(query: str, documents: List[str], top_k: int) -> List[RAGCitedPassage]:
     if not documents:
@@ -499,39 +537,47 @@ async def chat(request: ChatRequest):
 
 Click on any of the highlighted citations above to see a popup displaying the actual AustLII content. This demonstrates direct integration with AustLII's database showing real Australian legal provisions and cases."""
         else:
-            # Use OpenAI for general chat
-            client = _create_openai_client()
-            messages = [
-                {"role": "system", "content": (
-                    "You are an Australian legal assistant. Be concise, accurate, and cite legislation or cases where relevant. "
-                    "Educational use only; not legal advice."
-                )},
-                {"role": "user", "content": request.message},
-            ]
-            try:
-                completion = client.chat.completions.create(
-                    model=OPENAI_CHAT_MODEL,
-                    messages=messages,
+            # Use OpenAI for general chat or with built-in web_search tool
+            if request.enable_web_search:
+                response = _chat_with_openai_web_search(
+                    message=request.message,
                     temperature=request.temperature,
                     max_tokens=request.max_tokens,
                     top_p=request.top_p,
                 )
-            except Exception:
-                if OPENAI_ENABLE_FALLBACK == "1":
-                    fallback = OPENAI_FALLBACK_MODEL
-                    if OPENAI_CHAT_MODEL != fallback:
-                        completion = client.chat.completions.create(
-                            model=fallback,
-                            messages=messages,
-                            temperature=request.temperature,
-                            max_tokens=request.max_tokens,
-                            top_p=request.top_p,
-                        )
+            else:
+                client = _create_openai_client()
+                messages = [
+                    {"role": "system", "content": (
+                        "You are an Australian legal assistant. Be concise, accurate, and cite legislation or cases where relevant. "
+                        "Educational use only; not legal advice."
+                    )},
+                    {"role": "user", "content": request.message},
+                ]
+                try:
+                    completion = client.chat.completions.create(
+                        model=OPENAI_CHAT_MODEL,
+                        messages=messages,
+                        temperature=request.temperature,
+                        max_tokens=request.max_tokens,
+                        top_p=request.top_p,
+                    )
+                except Exception:
+                    if OPENAI_ENABLE_FALLBACK == "1":
+                        fallback = OPENAI_FALLBACK_MODEL
+                        if OPENAI_CHAT_MODEL != fallback:
+                            completion = client.chat.completions.create(
+                                model=fallback,
+                                messages=messages,
+                                temperature=request.temperature,
+                                max_tokens=request.max_tokens,
+                                top_p=request.top_p,
+                            )
+                        else:
+                            raise
                     else:
                         raise
-                else:
-                    raise
-            response = completion.choices[0].message.content if completion.choices else ""
+                response = completion.choices[0].message.content if completion.choices else ""
         
         # Calculate approximate tokens used
         tokens_used = len(response.split()) + len(request.message.split())
