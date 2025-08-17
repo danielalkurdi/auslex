@@ -427,11 +427,8 @@ async def chat(request: ChatRequest):
         time.sleep(processing_time)
         
         # Generate a response based on the input
-        print(f"DEBUG: Received message: '{request.message}'")
-        print(f"DEBUG: Processed message: '{request.message.lower().strip()}'")
-        print(f"DEBUG: Equals 'test': {request.message.lower().strip() == 'test'}")
-        
-        if "citation" in request.message.lower() or "test" in request.message.lower():
+        msg_lower = request.message.lower().strip()
+        if "citation" in msg_lower or "test" in msg_lower:
             # Special test response with embedded citations
             response = """Here's a comprehensive test of the AustLII citation preview system with various citation formats:
 
@@ -452,19 +449,25 @@ async def chat(request: ChatRequest):
 - Fair Work Act 2009 (Cth) s 382 defines what constitutes unfair dismissal.
 
 Click on any of the highlighted citations above to see a popup displaying the actual AustLII content. This demonstrates direct integration with AustLII's database showing real Australian legal provisions and cases."""
-        elif "negligence" in request.message.lower():
-            response = SAMPLE_RESPONSES[0]
-        elif "filing" in request.message.lower() or "civil claim" in request.message.lower():
-            response = SAMPLE_RESPONSES[1]
-        elif "common law" in request.message.lower() or "statutory" in request.message.lower():
-            response = SAMPLE_RESPONSES[2]
-        elif "precedent" in request.message.lower():
-            response = SAMPLE_RESPONSES[3]
-        elif "contract" in request.message.lower():
-            response = SAMPLE_RESPONSES[4]
         else:
-            # Generic legal response
-            response = f"I understand you're asking about Australian law. Based on your question: '{request.message}', I would need to provide specific legal guidance. However, please note that this is for educational purposes only and should not be considered as legal advice. For actual legal matters, please consult with a qualified legal professional."
+            # Use OpenAI for general chat
+            model = os.getenv("OPENAI_CHAT_MODEL", "gpt-5")
+            client = OpenAI()
+            messages = [
+                {"role": "system", "content": (
+                    "You are an Australian legal assistant. Be concise, accurate, and cite legislation or cases where relevant. "
+                    "Educational use only; not legal advice."
+                )},
+                {"role": "user", "content": request.message},
+            ]
+            completion = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens,
+                top_p=request.top_p,
+            )
+            response = completion.choices[0].message.content if completion.choices else ""
         
         # Calculate approximate tokens used
         tokens_used = len(response.split()) + len(request.message.split())
