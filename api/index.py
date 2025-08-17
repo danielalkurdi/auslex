@@ -151,6 +151,25 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 # Lightweight embeddings (serverless-safe)
 # -----------------------------
 
+def _create_openai_client() -> OpenAI:
+    """Create an OpenAI client honoring optional custom endpoint and org/project.
+    Allows use of custom/preview endpoints that expose GPT-5-compatible routes.
+    """
+    base_url = os.getenv("OPENAI_BASE_URL")
+    api_key = os.getenv("OPENAI_API_KEY")
+    organization = os.getenv("OPENAI_ORG")
+    project = os.getenv("OPENAI_PROJECT")
+    kwargs = {}
+    if base_url:
+        kwargs["base_url"] = base_url
+    if api_key:
+        kwargs["api_key"] = api_key
+    if organization:
+        kwargs["organization"] = organization
+    if project:
+        kwargs["project"] = project
+    return OpenAI(**kwargs)
+
 def _l2_normalize(vecs: List[List[float]]) -> List[List[float]]:
     import math
     out: List[List[float]] = []
@@ -160,7 +179,7 @@ def _l2_normalize(vecs: List[List[float]]) -> List[List[float]]:
     return out
 
 def _openai_embed(texts: List[str]) -> List[List[float]]:
-    client = OpenAI()
+    client = _create_openai_client()
     resp = client.embeddings.create(model="text-embedding-3-small", input=texts)
     return [d.embedding for d in resp.data]
 
@@ -173,7 +192,7 @@ def get_embeddings(texts: List[str], normalize: bool = True) -> (List[List[float
 # OpenAI generation
 
 def _generate_with_openai(query: str, passages: List[RAGCitedPassage], model: str, temperature: float, max_tokens: int) -> str:
-    client = OpenAI()
+    client = _create_openai_client()
     context_lines = []
     for idx, p in enumerate(passages, start=1):
         context_lines.append(f"[{idx}] {p.text}")
@@ -450,9 +469,10 @@ async def chat(request: ChatRequest):
 
 Click on any of the highlighted citations above to see a popup displaying the actual AustLII content. This demonstrates direct integration with AustLII's database showing real Australian legal provisions and cases."""
         else:
-            # Use OpenAI for general chat
-            model = os.getenv("OPENAI_CHAT_MODEL", "gpt-5")
-            client = OpenAI()
+            # Use OpenAI for general chat with model fallback
+            model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+            fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
+            client = _create_openai_client()
             messages = [
                 {"role": "system", "content": (
                     "You are an Australian legal assistant. Be concise, accurate, and cite legislation or cases where relevant. "
@@ -460,13 +480,25 @@ Click on any of the highlighted citations above to see a popup displaying the ac
                 )},
                 {"role": "user", "content": request.message},
             ]
-            completion = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=request.temperature,
-                max_tokens=request.max_tokens,
-                top_p=request.top_p,
-            )
+            try:
+                completion = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=request.temperature,
+                    max_tokens=request.max_tokens,
+                    top_p=request.top_p,
+                )
+            except Exception:
+                if os.getenv("OPENAI_ENABLE_FALLBACK", "1") == "1" and model != fallback:
+                    completion = client.chat.completions.create(
+                        model=fallback,
+                        messages=messages,
+                        temperature=request.temperature,
+                        max_tokens=request.max_tokens,
+                        top_p=request.top_p,
+                    )
+                else:
+                    raise
             response = completion.choices[0].message.content if completion.choices else ""
         
         # Calculate approximate tokens used
