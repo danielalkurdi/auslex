@@ -1,12 +1,13 @@
 ## AusLex AI — Australian Legal Assistant
 
-Modern React + FastAPI app for Australian legal research. It features a chat UI, configurable model settings, clickable legal citation previews (AustLII), and a simple authentication flow for demo purposes. You can run the backend as a standalone FastAPI service or as a serverless function on Vercel.
+Modern React + FastAPI app for Australian legal research with comprehensive Australian Legal Corpus integration. Features include a chat UI, configurable model settings, clickable legal citation previews (AustLII), accurate section 359A support, and a simple authentication flow for demo purposes. You can run the backend as a standalone FastAPI service or as a serverless function on Vercel.
 
 ### Key Features
 
 - 💬 **Chat interface with multi-chat history**: Create, rename, delete, and switch between chats in the `Sidebar`. Messages render with Markdown and citation-aware content.
 - ⚙️ **Configurable settings**: Adjust `max_tokens`, `temperature`, and `top_p` in `Settings`. Change API endpoint at runtime.
 - 🔎 **Legal citation parsing & previews**: Detects Acts, Regulations, and Case citations in responses, turns them into clickable links, and shows a preview modal with direct AustLII links and fallbacks.
+- 📚 **Australian Legal Corpus**: Comprehensive legal database integration with semantic search and section 359A Migration Act support.
 - 🔐 **Demo authentication**: Email/password register/login modal; JWT stored in `localStorage`. In-memory user store for demo (not production-grade).
 - 🎨 **Design system**: Tailwind tokens for color, spacing, typography; responsive layout and subtle micro-interactions.
 - 🚀 **Flexible backend**: Same API available under root paths (standalone) and `/api/*` (Vercel serverless).
