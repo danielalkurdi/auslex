@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import PropTypes from 'prop-types';
@@ -24,7 +24,7 @@ const MarkdownWithCitations = ({
   /**
    * Handle citation click
    */
-  const handleCitationClick = (citation, event) => {
+  const handleCitationClick = useCallback((citation, event) => {
     event.preventDefault();
     const rect = event.target.getBoundingClientRect();
     setModalPosition({
@@ -32,19 +32,19 @@ const MarkdownWithCitations = ({
       left: rect.left + window.scrollX
     });
     setActiveModal(citation);
-  };
+  }, []);
 
   /**
    * Handle modal close
    */
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     setActiveModal(null);
-  };
+  }, []);
 
   /**
    * Get citation icon based on type
    */
-  const getCitationIcon = (type) => {
+  const getCitationIcon = useCallback((type) => {
     switch (type) {
       case 'legislation':
         return <FileText className="w-3 h-3" />;
@@ -55,12 +55,12 @@ const MarkdownWithCitations = ({
       default:
         return <ExternalLink className="w-3 h-3" />;
     }
-  };
+  }, []);
 
   /**
    * Get citation styling classes
    */
-  const getCitationClasses = (citation) => {
+  const getCitationClasses = useCallback((citation) => {
     const baseClasses = 'transition-all duration-200 cursor-pointer';
     
     const typeColors = {
@@ -81,12 +81,12 @@ const MarkdownWithCitations = ({
       default:
         return `${baseClasses} ${colors} underline decoration-dashed underline-offset-2 hover:decoration-solid font-medium`;
     }
-  };
+  }, [citationStyle]);
 
   /**
    * Process text content for citations
    */
-  const processTextWithCitations = (text) => {
+  const processTextWithCitations = useCallback((text) => {
     if (isUser || isError || typeof text !== 'string') {
       return text;
     }
@@ -122,7 +122,7 @@ const MarkdownWithCitations = ({
         return chunk.content;
       }
     });
-  };
+  }, [isUser, isError, citationStyle, getCitationClasses, handleCitationClick, getCitationIcon]);
 
   /**
    * Custom markdown components that handle citations
@@ -149,24 +149,28 @@ const MarkdownWithCitations = ({
       return <p className="mb-2 sm:mb-3 last:mb-0" {...props}>{children}</p>;
     },
     
-    // eslint-disable-next-line jsx-a11y/heading-has-content
-    h1: ({ node, ...props }) => (
-      <h1 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 text-text-primary" {...props} />
+    h1: ({ node, children, ...props }) => (
+      <h1 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 text-text-primary" {...props}>
+        {children}
+      </h1>
     ),
     
-    // eslint-disable-next-line jsx-a11y/heading-has-content
-    h2: ({ node, ...props }) => (
-      <h2 className="text-base sm:text-lg font-semibold mb-2 text-text-primary" {...props} />
+    h2: ({ node, children, ...props }) => (
+      <h2 className="text-base sm:text-lg font-semibold mb-2 text-text-primary" {...props}>
+        {children}
+      </h2>
     ),
     
-    // eslint-disable-next-line jsx-a11y/heading-has-content
-    h3: ({ node, ...props }) => (
-      <h3 className="text-sm sm:text-base font-semibold mb-2 text-text-primary" {...props} />
+    h3: ({ node, children, ...props }) => (
+      <h3 className="text-sm sm:text-base font-semibold mb-2 text-text-primary" {...props}>
+        {children}
+      </h3>
     ),
     
-    // eslint-disable-next-line jsx-a11y/heading-has-content
-    h4: ({ node, ...props }) => (
-      <h4 className="text-sm font-semibold mb-2 text-text-primary" {...props} />
+    h4: ({ node, children, ...props }) => (
+      <h4 className="text-sm font-semibold mb-2 text-text-primary" {...props}>
+        {children}
+      </h4>
     ),
     
     ul: ({ node, ...props }) => (
@@ -181,9 +185,10 @@ const MarkdownWithCitations = ({
       <li className="text-text-secondary" {...props} />
     ),
     
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    a: ({ node, ...props }) => (
-      <a className="text-accent hover:underline" {...props} />
+    a: ({ node, children, ...props }) => (
+      <a className="text-accent hover:underline" {...props}>
+        {children}
+      </a>
     ),
     
     code: ({ node, inline, ...props }) => 
@@ -206,7 +211,7 @@ const MarkdownWithCitations = ({
     blockquote: ({ node, ...props }) => (
       <blockquote className="border-l-4 border-border-subtle pl-4 my-2 sm:my-3 text-text-secondary/90" {...props} />
     )
-  }), [isUser, isError, citationStyle]);
+  }), [isUser, isError, citationStyle, processTextWithCitations]);
 
   return (
     <div className={className}>
