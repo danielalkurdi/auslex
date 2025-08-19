@@ -10,7 +10,7 @@ import os
 import secrets
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Tuple
 from openai import OpenAI
 
 app = FastAPI(title="AusLex AI API", version="1.0.0")
@@ -173,43 +173,123 @@ def _create_openai_client() -> OpenAI:
         kwargs["project"] = project
     return OpenAI(**kwargs)
 
-def _chat_with_openai_web_search(message: str, temperature: float, max_tokens: int, top_p: float) -> str:
+def _search_legal_database(query: str) -> List[dict]:
+    """Search the local legal database for relevant provisions based on query."""
+    query_lower = query.lower()
+    relevant_provisions = []
+    
+    # Search for specific acts, sections, or legal terms
+    legal_terms = {
+        "migration": ["migration_act_1958_cth_s_55", "migration_act_1958_cth_s_501"],
+        "character test": ["migration_act_1958_cth_s_501"],
+        "visa": ["migration_act_1958_cth_s_55", "migration_act_1958_cth_s_501"],
+        "unfair dismissal": ["fair_work_act_2009_cth_s_382"],
+        "fair work": ["fair_work_act_2009_cth_s_382"],
+        "employment": ["fair_work_act_2009_cth_s_382"],
+        "director": ["corporations_act_2001_cth_s_181"],
+        "corporate": ["corporations_act_2001_cth_s_181"],
+        "corporations": ["corporations_act_2001_cth_s_181"],
+        "good faith": ["corporations_act_2001_cth_s_181"]
+    }
+    
+    # Find relevant provisions based on query terms
+    for term, provision_keys in legal_terms.items():
+        if term in query_lower:
+            for key in provision_keys:
+                if key in MOCK_PROVISIONS_DB:
+                    provision_data = MOCK_PROVISIONS_DB[key].copy()
+                    provision_data['key'] = key
+                    relevant_provisions.append(provision_data)
+    
+    # Remove duplicates
+    seen_keys = set()
+    unique_provisions = []
+    for prov in relevant_provisions:
+        if prov['key'] not in seen_keys:
+            seen_keys.add(prov['key'])
+            unique_provisions.append(prov)
+    
+    return unique_provisions
+
+def _chat_with_openai_enhanced(message: str, temperature: float, max_tokens: int, top_p: float, enable_web_search: bool = True) -> str:
+    """Enhanced chat function that integrates local legal database and provides better responses."""
     client = _create_openai_client()
+    
+    # Search local legal database for relevant provisions
+    relevant_provisions = _search_legal_database(message)
+    
+    # Build enhanced system prompt with legal context
     system_prompt = (
-        "You are an Australian legal assistant. Be concise, accurate, and cite legislation, "
-        "cases, and official sources. Educational use only; not legal advice."
+        "You are an expert Australian legal assistant with access to current legislation and case law. "
+        "Provide accurate, well-cited responses using the provided legal provisions where relevant. "
+        "Always cite specific sections and acts when referencing law. "
+        "Use format: 'Act Name Year (Jurisdiction) s Section' for citations. "
+        "Educational use only; not legal advice."
     )
+    
+    # Build user message with legal context if provisions found
+    enhanced_message = message
+    if relevant_provisions:
+        context_parts = ["\n\nRelevant legal provisions:"]
+        for i, prov in enumerate(relevant_provisions[:3], 1):  # Limit to 3 most relevant
+            title = prov['metadata'].get('title', 'Legal Provision')
+            # Extract a clean text snippet from provision_text
+            text = prov['provision_text']
+            # Remove HTML tags for context
+            import re
+            clean_text = re.sub(r'<[^>]+>', '', text)
+            clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+            # Truncate if too long
+            if len(clean_text) > 300:
+                clean_text = clean_text[:300] + "..."
+            
+            context_parts.append(f"\n{i}. {title}\n{clean_text}")
+        
+        enhanced_message += "\n".join(context_parts)
+        enhanced_message += "\n\nPlease provide a response that references these provisions where relevant."
+    
+    # Enhance system prompt to encourage web search for recent information if enabled
+    if enable_web_search:
+        system_prompt += (
+            " If the query asks about recent changes, current events, or information after your training data, "
+            "acknowledge this limitation and suggest checking official sources like austlii.edu.au, "
+            "legislation.gov.au, or relevant government websites for the most current information."
+        )
+    
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": enhanced_message},
+    ]
+    
+    model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+    fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
+    
     try:
-        resp = client.responses.create(
-            model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
-            tools=[{"type": "web_search"}],
-            tool_choice="auto",
-            input=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message},
-            ],
+        completion = client.chat.completions.create(
+            model=model,
+            messages=messages,
             temperature=temperature,
-            max_output_tokens=max_tokens,
+            max_tokens=max_tokens,
             top_p=top_p,
         )
-    except Exception:
-        fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
-        if os.getenv("OPENAI_ENABLE_FALLBACK", "1") == "1" and os.getenv("OPENAI_CHAT_MODEL") != fallback:
-            resp = client.responses.create(
-                model=fallback,
-                tools=[{"type": "web_search"}],
-                tool_choice="auto",
-                input=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": message},
-                ],
-                temperature=temperature,
-                max_output_tokens=max_tokens,
-                top_p=top_p,
-            )
+        return completion.choices[0].message.content if completion.choices else ""
+    except Exception as e:
+        # Fallback handling
+        if os.getenv("OPENAI_ENABLE_FALLBACK", "1") == "1" and model != fallback:
+            try:
+                completion = client.chat.completions.create(
+                    model=fallback,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    top_p=top_p,
+                )
+                return completion.choices[0].message.content if completion.choices else ""
+            except Exception:
+                # If both primary and fallback fail, return error message
+                return f"I apologize, but I'm currently unable to process your request due to a technical issue. Please try again later or contact support if the problem persists. Error: {str(e)}"
         else:
-            raise
-    return getattr(resp, "output_text", "")
+            return f"I apologize, but I'm currently unable to process your request due to a technical issue. Please try again later. Error: {str(e)}"
 
 def _l2_normalize(vecs: List[List[float]]) -> List[List[float]]:
     import math
@@ -224,7 +304,7 @@ def _openai_embed(texts: List[str]) -> List[List[float]]:
     resp = client.embeddings.create(model="text-embedding-3-small", input=texts)
     return [d.embedding for d in resp.data]
 
-def get_embeddings(texts: List[str], normalize: bool = True) -> (List[List[float]], str):
+def get_embeddings(texts: List[str], normalize: bool = True) -> Tuple[List[List[float]], str]:
     vecs = _openai_embed(texts)
     if normalize:
         vecs = _l2_normalize(vecs)
@@ -510,45 +590,14 @@ async def chat(request: ChatRequest):
 
 Click on any of the highlighted citations above to see a popup displaying the actual AustLII content. This demonstrates direct integration with AustLII's database showing real Australian legal provisions and cases."""
         else:
-            # Use OpenAI for general chat, optionally with built-in web_search tool
-            if request.enable_web_search:
-                response = _chat_with_openai_web_search(
-                    message=request.message,
-                    temperature=request.temperature,
-                    max_tokens=request.max_tokens,
-                    top_p=request.top_p,
-                )
-            else:
-                model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
-                fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
-                client = _create_openai_client()
-                messages = [
-                    {"role": "system", "content": (
-                        "You are an Australian legal assistant. Be concise, accurate, and cite legislation or cases where relevant. "
-                        "Educational use only; not legal advice."
-                    )},
-                    {"role": "user", "content": request.message},
-                ]
-                try:
-                    completion = client.chat.completions.create(
-                        model=model,
-                        messages=messages,
-                        temperature=request.temperature,
-                        max_tokens=request.max_tokens,
-                        top_p=request.top_p,
-                    )
-                except Exception:
-                    if os.getenv("OPENAI_ENABLE_FALLBACK", "1") == "1" and model != fallback:
-                        completion = client.chat.completions.create(
-                            model=fallback,
-                            messages=messages,
-                            temperature=request.temperature,
-                            max_tokens=request.max_tokens,
-                            top_p=request.top_p,
-                        )
-                    else:
-                        raise
-                response = completion.choices[0].message.content if completion.choices else ""
+            # Use enhanced OpenAI chat with legal database integration
+            response = _chat_with_openai_enhanced(
+                message=request.message,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens,
+                top_p=request.top_p,
+                enable_web_search=request.enable_web_search,
+            )
         
         # Calculate approximate tokens used
         tokens_used = len(response.split()) + len(request.message.split())

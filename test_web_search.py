@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple test script to verify GPT-5 web search functionality
+Simple test script to verify enhanced legal assistant functionality with database integration
 """
 import os
 from openai import OpenAI
@@ -131,23 +131,23 @@ if __name__ == "__main__":
         print("Please set your OpenAI API key to test the functionality")
         exit(1)
     
-    print("AusLex GPT-5 Web Search Test")
+    print("AusLex Enhanced Legal Assistant Test")
     print("=" * 50)
     print(f"Model: {os.getenv('OPENAI_CHAT_MODEL', 'gpt-4o-mini')}")
     print(f"Base URL: {os.getenv('OPENAI_BASE_URL', 'Default OpenAI')}")
     
     # Run tests
-    web_search_success = test_web_search()
-    regular_success = test_without_web_search()
+    enhanced_success = test_enhanced_chat()
+    recent_info_success = test_recent_info_handling()
     
     print("\n" + "=" * 50)
     print("TEST SUMMARY")
     print("=" * 50)
-    print(f"Web search test: {'PASSED' if web_search_success else 'FAILED'}")
-    print(f"Regular chat test: {'PASSED' if regular_success else 'FAILED'}")
+    print(f"Enhanced legal assistant test: {'PASSED' if enhanced_success else 'FAILED'}")
+    print(f"Recent information handling test: {'PASSED' if recent_info_success else 'FAILED'}")
     
-    if web_search_success:
-        print("\n[SUCCESS] Web search functionality appears to be implemented correctly!")
-        print("The responses.create() API with web_search tools is working.")
+    if enhanced_success and recent_info_success:
+        print("\n[SUCCESS] Enhanced legal assistant functionality appears to be working correctly!")
+        print("The chat.completions.create() API with legal database integration is working.")
     else:
-        print("\n[WARNING] There may be issues with the web search implementation.")
+        print("\n[WARNING] There may be issues with the enhanced legal assistant implementation.")
