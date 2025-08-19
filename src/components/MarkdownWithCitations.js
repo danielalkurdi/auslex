@@ -211,7 +211,7 @@ const MarkdownWithCitations = ({
     blockquote: ({ node, ...props }) => (
       <blockquote className="border-l-4 border-border-subtle pl-4 my-2 sm:my-3 text-text-secondary/90" {...props} />
     )
-  }), [isUser, isError, citationStyle, processTextWithCitations]);
+  }), [isUser, isError, processTextWithCitations]);
 
   return (
     <div className={className}>
