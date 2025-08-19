@@ -12,8 +12,19 @@ from datetime import datetime, timedelta
 from passlib.hash import bcrypt
 from typing import List, Literal, Optional, Tuple
 from openai import OpenAI
+from legal_corpus_lite import initialize_corpus, search_legal_provisions, find_specific_legal_provision, get_corpus_stats
 
 app = FastAPI(title="AusLex AI API", version="1.0.0")
+
+# Initialize legal corpus on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize the legal corpus on application startup"""
+    import threading
+    # Initialize corpus in background thread to avoid blocking startup
+    corpus_thread = threading.Thread(target=initialize_corpus)
+    corpus_thread.daemon = True
+    corpus_thread.start()
 
 # Security
 SECRET_KEY = os.getenv("JWT_SECRET_KEY") or secrets.token_urlsafe(32)
@@ -241,7 +252,52 @@ def _extract_legal_concepts(query: str) -> List[str]:
     return concepts
 
 def _search_legal_database(query: str) -> List[dict]:
-    """Enhanced search of the local legal database with semantic matching and fuzzy search."""
+    """Enhanced search using the comprehensive Australian Legal Corpus."""
+    try:
+        # First, try to search the comprehensive legal corpus
+        corpus_results = search_legal_provisions(query, top_k=10)
+        
+        if corpus_results:
+            # Convert corpus results to the expected format
+            relevant_provisions = []
+            for result in corpus_results:
+                provision = {
+                    'key': result['id'],
+                    'data': {
+                        'provision_text': result['text'],
+                        'metadata': {
+                            'title': result['citation'],
+                            'lastAmended': result.get('date', ''),
+                            'effectiveDate': result.get('date', ''),
+                            'jurisdiction': result.get('jurisdiction', ''),
+                            'type': result.get('type', '')
+                        },
+                        'source': 'Australian Legal Corpus',
+                        'full_act_url': result.get('url', ''),
+                        'notes': [
+                            f"Retrieved from comprehensive legal database",
+                            f"Relevance score: {result.get('relevance_score', 0):.3f}",
+                            f"Document type: {result.get('type', 'Unknown')}",
+                            f"Jurisdiction: {result.get('jurisdiction', 'Unknown')}"
+                        ],
+                        'related_provisions': [],
+                        'case_references': []
+                    },
+                    'score': result.get('relevance_score', 0) * 100  # Scale to 0-100
+                }
+                relevant_provisions.append(provision)
+            
+            return relevant_provisions
+        
+        # Fallback to mock database if corpus search fails
+        return _search_mock_database_fallback(query)
+        
+    except Exception as e:
+        # Fallback to mock database search if corpus fails
+        return _search_mock_database_fallback(query)
+
+def _search_mock_database_fallback(query: str) -> List[dict]:
+    """Fallback search using the original mock database logic."""
     query_lower = query.lower()
     relevant_provisions = []
     
@@ -968,6 +1024,11 @@ async def rag_answer_prefixed(req: RAGRequest):
 async def chat_prefixed(request: ChatRequest):
     return await chat(request)
 
+@app.get("/api/corpus/stats")
+async def get_corpus_statistics():
+    """Get statistics about the loaded legal corpus"""
+    return get_corpus_stats()
+
 @app.post("/legal/provision", response_model=ProvisionResponse)
 async def get_legal_provision(request: ProvisionRequest):
     """
@@ -982,18 +1043,36 @@ async def get_legal_provision(request: ProvisionRequest):
         processing_time = random.uniform(0.5, 2.0)
         time.sleep(processing_time)
         
-        # Generate lookup key for mock database
+        # First, try to find in comprehensive legal corpus
+        corpus_result = find_specific_legal_provision(
+            act_name=request.act_name,
+            section=request.provision,
+            jurisdiction=request.jurisdiction
+        )
+        
+        if corpus_result:
+            # Convert corpus result to ProvisionResponse format
+            return ProvisionResponse(
+                provision_text=corpus_result["provision_text"],
+                metadata=corpus_result["metadata"],
+                source=corpus_result["source"],
+                full_act_url=corpus_result["full_act_url"],
+                notes=corpus_result["notes"],
+                related_provisions=corpus_result.get("related_provisions", []),
+                case_references=corpus_result.get("case_references", [])
+            )
+        
+        # Fallback to mock database
         act_name_key = request.act_name.lower().replace(" ", "_").replace("(", "").replace(")", "")
         lookup_key = f"{act_name_key}_{request.year}_{request.jurisdiction.lower()}_s_{request.provision.lower()}"
         
-        # Try to find in mock database
         provision_data = MOCK_PROVISIONS_DB.get(lookup_key)
         
         if not provision_data:
             # Return generic response if not found
             raise HTTPException(
                 status_code=404, 
-                detail=f"Provision not found: {request.full_citation}. This may be because the provision does not exist, has been repealed, or is not available in the database."
+                detail=f"Provision not found: {request.full_citation}. This may be because the provision does not exist, has been repealed, or is not available in the comprehensive legal database."
             )
         
         # Return provision data
