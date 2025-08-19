@@ -173,97 +173,357 @@ def _create_openai_client() -> OpenAI:
         kwargs["project"] = project
     return OpenAI(**kwargs)
 
+def _calculate_semantic_similarity(query_text: str, provision_text: str) -> float:
+    """Calculate semantic similarity between query and provision using simple text overlap."""
+    import re
+    
+    # Clean and normalize text
+    query_words = set(re.findall(r'\b\w+\b', query_text.lower()))
+    provision_words = set(re.findall(r'\b\w+\b', provision_text.lower()))
+    
+    # Remove common stop words
+    stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can'}
+    query_words = query_words - stop_words
+    provision_words = provision_words - stop_words
+    
+    if not query_words or not provision_words:
+        return 0.0
+    
+    # Calculate Jaccard similarity
+    intersection = len(query_words & provision_words)
+    union = len(query_words | provision_words)
+    
+    return intersection / union if union > 0 else 0.0
+
+def _fuzzy_match_term(query_term: str, legal_term: str) -> bool:
+    """Check if query term fuzzy matches a legal term."""
+    # Exact match
+    if query_term in legal_term or legal_term in query_term:
+        return True
+    
+    # Check for partial matches (at least 3 characters)
+    if len(query_term) >= 3 and len(legal_term) >= 3:
+        # Simple substring matching for legal terms
+        return query_term[:3] in legal_term or legal_term[:3] in query_term
+    
+    return False
+
+def _extract_legal_concepts(query: str) -> List[str]:
+    """Extract legal concepts and entities from the query."""
+    import re
+    
+    concepts = []
+    query_lower = query.lower()
+    
+    # Extract section references (e.g., "section 501", "s 55", "s. 382")
+    section_patterns = [
+        r'section\s+(\d+[a-z]?)',
+        r's\.?\s*(\d+[a-z]?)',
+        r'sec\s+(\d+[a-z]?)'
+    ]
+    
+    for pattern in section_patterns:
+        matches = re.findall(pattern, query_lower)
+        concepts.extend([f"section {match}" for match in matches])
+    
+    # Extract act names
+    act_patterns = [
+        r'(migration\s+act)',
+        r'(fair\s+work\s+act)',
+        r'(corporations\s+act)',
+        r'(privacy\s+act)'
+    ]
+    
+    for pattern in act_patterns:
+        matches = re.findall(pattern, query_lower)
+        concepts.extend(matches)
+    
+    return concepts
+
 def _search_legal_database(query: str) -> List[dict]:
-    """Search the local legal database for relevant provisions based on query."""
+    """Enhanced search of the local legal database with semantic matching and fuzzy search."""
     query_lower = query.lower()
     relevant_provisions = []
     
-    # Search for specific acts, sections, or legal terms
+    # Expanded legal terms mapping with semantic variations and related concepts
     legal_terms = {
+        # Migration Law
         "migration": ["migration_act_1958_cth_s_55", "migration_act_1958_cth_s_501"],
+        "migration act": ["migration_act_1958_cth_s_55", "migration_act_1958_cth_s_501"],
         "character test": ["migration_act_1958_cth_s_501"],
+        "character assessment": ["migration_act_1958_cth_s_501"],
+        "character requirement": ["migration_act_1958_cth_s_501"],
+        "substantial criminal record": ["migration_act_1958_cth_s_501"],
+        "criminal conduct": ["migration_act_1958_cth_s_501"],
+        "good character": ["migration_act_1958_cth_s_501"],
         "visa": ["migration_act_1958_cth_s_55", "migration_act_1958_cth_s_501"],
+        "visa cancellation": ["migration_act_1958_cth_s_501"],
+        "visa refusal": ["migration_act_1958_cth_s_501"],
+        "first entry deadline": ["migration_act_1958_cth_s_55"],
+        "entry deadline": ["migration_act_1958_cth_s_55"],
+        "protection visa": ["migration_act_1958_cth_s_55"],
+        "section 55": ["migration_act_1958_cth_s_55"],
+        "s 55": ["migration_act_1958_cth_s_55"],
+        "section 501": ["migration_act_1958_cth_s_501"],
+        "s 501": ["migration_act_1958_cth_s_501"],
+        
+        # Employment Law
         "unfair dismissal": ["fair_work_act_2009_cth_s_382"],
+        "wrongful dismissal": ["fair_work_act_2009_cth_s_382"],
+        "unjust dismissal": ["fair_work_act_2009_cth_s_382"],
+        "harsh dismissal": ["fair_work_act_2009_cth_s_382"],
+        "unreasonable dismissal": ["fair_work_act_2009_cth_s_382"],
         "fair work": ["fair_work_act_2009_cth_s_382"],
+        "fair work act": ["fair_work_act_2009_cth_s_382"],
         "employment": ["fair_work_act_2009_cth_s_382"],
+        "employment law": ["fair_work_act_2009_cth_s_382"],
+        "dismissal": ["fair_work_act_2009_cth_s_382"],
+        "termination": ["fair_work_act_2009_cth_s_382"],
+        "fair work commission": ["fair_work_act_2009_cth_s_382"],
+        "genuine redundancy": ["fair_work_act_2009_cth_s_382"],
+        "small business fair dismissal": ["fair_work_act_2009_cth_s_382"],
+        "section 382": ["fair_work_act_2009_cth_s_382"],
+        "s 382": ["fair_work_act_2009_cth_s_382"],
+        
+        # Corporate Law
         "director": ["corporations_act_2001_cth_s_181"],
+        "directors duties": ["corporations_act_2001_cth_s_181"],
+        "director duty": ["corporations_act_2001_cth_s_181"],
+        "fiduciary duty": ["corporations_act_2001_cth_s_181"],
         "corporate": ["corporations_act_2001_cth_s_181"],
         "corporations": ["corporations_act_2001_cth_s_181"],
-        "good faith": ["corporations_act_2001_cth_s_181"]
+        "corporations act": ["corporations_act_2001_cth_s_181"],
+        "good faith": ["corporations_act_2001_cth_s_181"],
+        "best interests": ["corporations_act_2001_cth_s_181"],
+        "proper purpose": ["corporations_act_2001_cth_s_181"],
+        "officer": ["corporations_act_2001_cth_s_181"],
+        "civil penalty": ["corporations_act_2001_cth_s_181"],
+        "contravention": ["corporations_act_2001_cth_s_181"],
+        "section 181": ["corporations_act_2001_cth_s_181"],
+        "s 181": ["corporations_act_2001_cth_s_181"]
     }
     
-    # Find relevant provisions based on query terms
+    # Extract legal concepts from query
+    extracted_concepts = _extract_legal_concepts(query)
+    
+    # Score-based matching system
+    provision_scores = {}
+    
+    # 1. Exact term matching (highest score)
     for term, provision_keys in legal_terms.items():
         if term in query_lower:
             for key in provision_keys:
                 if key in MOCK_PROVISIONS_DB:
-                    provision_data = MOCK_PROVISIONS_DB[key].copy()
-                    provision_data['key'] = key
-                    relevant_provisions.append(provision_data)
+                    provision_scores[key] = provision_scores.get(key, 0) + 10
     
-    # Remove duplicates
-    seen_keys = set()
-    unique_provisions = []
-    for prov in relevant_provisions:
-        if prov['key'] not in seen_keys:
-            seen_keys.add(prov['key'])
-            unique_provisions.append(prov)
+    # 2. Fuzzy term matching (medium score)
+    for term, provision_keys in legal_terms.items():
+        if any(_fuzzy_match_term(word, term) for word in query_lower.split()):
+            for key in provision_keys:
+                if key in MOCK_PROVISIONS_DB:
+                    provision_scores[key] = provision_scores.get(key, 0) + 5
     
-    return unique_provisions
+    # 3. Semantic similarity matching (lower score)
+    for key, provision_data in MOCK_PROVISIONS_DB.items():
+        # Calculate semantic similarity with provision text and metadata
+        provision_text = provision_data.get('provision_text', '')
+        title = provision_data.get('metadata', {}).get('title', '')
+        
+        text_similarity = _calculate_semantic_similarity(query, provision_text)
+        title_similarity = _calculate_semantic_similarity(query, title)
+        
+        # Add semantic scores
+        if text_similarity > 0.1:
+            provision_scores[key] = provision_scores.get(key, 0) + (text_similarity * 3)
+        if title_similarity > 0.1:
+            provision_scores[key] = provision_scores.get(key, 0) + (title_similarity * 4)
+    
+    # 4. Extracted concept matching (high score)
+    for concept in extracted_concepts:
+        for term, provision_keys in legal_terms.items():
+            if concept.lower() in term or term in concept.lower():
+                for key in provision_keys:
+                    if key in MOCK_PROVISIONS_DB:
+                        provision_scores[key] = provision_scores.get(key, 0) + 8
+    
+    # Sort provisions by score and select top matches
+    sorted_provisions = sorted(provision_scores.items(), key=lambda x: x[1], reverse=True)
+    
+    # Build result list with score threshold
+    for key, score in sorted_provisions:
+        if score >= 3:  # Minimum relevance threshold
+            if key in MOCK_PROVISIONS_DB:
+                provision_data = MOCK_PROVISIONS_DB[key].copy()
+                provision_data['key'] = key
+                provision_data['relevance_score'] = score
+                relevant_provisions.append(provision_data)
+                
+                # Add related provisions if highly relevant
+                if score >= 8:
+                    related_keys = provision_data.get('related_provisions', [])
+                    for related_key in related_keys:
+                        full_related_key = f"{key.rsplit('_s_', 1)[0]}_s_{related_key.lower().replace('s ', '')}"
+                        if full_related_key in MOCK_PROVISIONS_DB and full_related_key not in [p['key'] for p in relevant_provisions]:
+                            related_data = MOCK_PROVISIONS_DB[full_related_key].copy()
+                            related_data['key'] = full_related_key
+                            related_data['relevance_score'] = score * 0.6  # Related provisions get lower score
+                            relevant_provisions.append(related_data)
+    
+    # Limit to top 5 most relevant provisions
+    return relevant_provisions[:5]
 
-def _chat_with_openai_enhanced(message: str, temperature: float, max_tokens: int, top_p: float, enable_web_search: bool = True) -> str:
-    """Enhanced chat function that integrates local legal database and provides better responses."""
-    client = _create_openai_client()
+def _validate_response_against_database(response: str, relevant_provisions: List[dict]) -> dict:
+    """Validate AI response against legal database to identify potential inaccuracies."""
+    import re
     
-    # Search local legal database for relevant provisions
-    relevant_provisions = _search_legal_database(message)
+    validation_result = {
+        "confidence_level": "high",  # high, medium, low
+        "database_supported_claims": [],
+        "unsupported_claims": [],
+        "contradictions": [],
+        "missing_citations": []
+    }
     
-    # Build enhanced system prompt with legal context
+    if not relevant_provisions:
+        validation_result["confidence_level"] = "low"
+        validation_result["unsupported_claims"].append("Response not supported by available database provisions")
+        return validation_result
+    
+    # Extract section references from response
+    section_refs = re.findall(r's\.?\s*(\d+[a-z]?)', response.lower())
+    
+    # Check if response mentions provisions that are in our database
+    database_sections = []
+    for prov in relevant_provisions:
+        key_parts = prov['key'].split('_s_')
+        if len(key_parts) > 1:
+            database_sections.append(key_parts[1])
+    
+    # Identify properly cited claims
+    for section in section_refs:
+        if section in database_sections:
+            validation_result["database_supported_claims"].append(f"Section {section}")
+    
+    # Check for potential contradictions (simplified)
+    response_lower = response.lower()
+    for prov in relevant_provisions:
+        title = prov['metadata'].get('title', '').lower()
+        if title and title not in response_lower and len(title.split()) <= 3:
+            validation_result["missing_citations"].append(f"Potentially missed: {title}")
+    
+    # Adjust confidence based on findings
+    if len(validation_result["database_supported_claims"]) == 0:
+        validation_result["confidence_level"] = "low"
+    elif len(validation_result["unsupported_claims"]) > 0:
+        validation_result["confidence_level"] = "medium"
+    
+    return validation_result
+
+def _generate_accuracy_focused_prompt(query: str, provisions: List[dict]) -> tuple:
+    """Generate enhanced system and user prompts focused on accuracy."""
+    
+    # Comprehensive system prompt emphasizing accuracy
     system_prompt = (
-        "You are an expert Australian legal assistant with access to current legislation and case law. "
-        "Provide accurate, well-cited responses using the provided legal provisions where relevant. "
-        "Always cite specific sections and acts when referencing law. "
-        "Use format: 'Act Name Year (Jurisdiction) s Section' for citations. "
-        "Educational use only; not legal advice."
+        "You are a highly accurate Australian legal assistant with access to authoritative legal provisions. "
+        "Your primary goal is ACCURACY over completeness. Follow these strict guidelines:\n\n"
+        
+        "ACCURACY REQUIREMENTS:\n"
+        "• ONLY make claims that are directly supported by the provided legal provisions\n"
+        "• Quote provisions EXACTLY as they appear in the database when referencing specific text\n"
+        "• Use precise Australian legal citation format: 'Act Name Year (Jurisdiction) s Section'\n"
+        "• When uncertain, explicitly state 'The available provisions do not address this aspect'\n\n"
+        
+        "RESPONSE STRUCTURE:\n"
+        "• Start with provisions that directly answer the query\n"
+        "• Clearly distinguish between: (1) Information from provided provisions, (2) General legal knowledge, (3) Areas requiring current official sources\n"
+        "• Include confidence indicators: 'Based on the provided provisions...' or 'The available database shows...'\n\n"
+        
+        "CITATION REQUIREMENTS:\n"
+        "• Cite specific subsections: 'Migration Act 1958 (Cth) s 501(6)(a)'\n"
+        "• Reference related provisions when relevant: 'See also s 501A and s 501B'\n"
+        "• Include act abbreviations where standard: 'FW Act s 382'\n\n"
+        
+        "LIMITATIONS:\n"
+        "• Always include disclaimer: 'This information is for educational purposes only and does not constitute legal advice'\n"
+        "• For current information beyond your training data, direct users to official sources: austlii.edu.au, legislation.gov.au\n"
+        "• When provisions don't fully address a query, suggest specific alternative searches"
     )
     
-    # Build user message with legal context if provisions found
-    enhanced_message = message
-    if relevant_provisions:
-        context_parts = ["\n\nRelevant legal provisions:"]
-        for i, prov in enumerate(relevant_provisions[:3], 1):  # Limit to 3 most relevant
-            title = prov['metadata'].get('title', 'Legal Provision')
-            # Extract a clean text snippet from provision_text
-            text = prov['provision_text']
-            # Remove HTML tags for context
-            import re
-            clean_text = re.sub(r'<[^>]+>', '', text)
-            clean_text = re.sub(r'\s+', ' ', clean_text).strip()
-            # Truncate if too long
-            if len(clean_text) > 300:
-                clean_text = clean_text[:300] + "..."
-            
-            context_parts.append(f"\n{i}. {title}\n{clean_text}")
+    # Enhanced user message with structured context
+    if provisions:
+        context_parts = ["\n\n=== AVAILABLE LEGAL PROVISIONS ===\n"]
         
-        enhanced_message += "\n".join(context_parts)
-        enhanced_message += "\n\nPlease provide a response that references these provisions where relevant."
-    
-    # Enhance system prompt to encourage web search for recent information if enabled
-    if enable_web_search:
-        system_prompt += (
-            " If the query asks about recent changes, current events, or information after your training data, "
-            "acknowledge this limitation and suggest checking official sources like austlii.edu.au, "
-            "legislation.gov.au, or relevant government websites for the most current information."
+        for i, prov in enumerate(provisions, 1):
+            # Extract metadata
+            title = prov['metadata'].get('title', 'Legal Provision')
+            last_amended = prov['metadata'].get('lastAmended', 'Unknown')
+            relevance_score = prov.get('relevance_score', 0)
+            
+            # Clean provision text
+            import re
+            clean_text = re.sub(r'<[^>]+>', '', prov['provision_text'])
+            clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+            
+            # Build structured context
+            context_parts.append(
+                f"PROVISION {i} (Relevance: {relevance_score:.1f}):\n"
+                f"Title: {title}\n"
+                f"Last Amended: {last_amended}\n"
+                f"Content: {clean_text}\n"
+            )
+            
+            # Add related provisions if available
+            if prov.get('related_provisions'):
+                context_parts.append(f"Related Provisions: {', '.join(prov['related_provisions'])}\n")
+            
+            context_parts.append("---\n")
+        
+        enhanced_query = query + "".join(context_parts)
+        enhanced_query += (
+            "\n\n=== RESPONSE INSTRUCTIONS ===\n"
+            "Provide an accurate response using ONLY the provisions above. "
+            "Quote exact text when referencing specific requirements. "
+            "Clearly indicate if the query cannot be fully answered with available provisions."
+        )
+    else:
+        enhanced_query = (
+            query + 
+            "\n\n=== DATABASE STATUS ===\n"
+            "No directly relevant provisions found in available legal database. "
+            "Please provide a response based on general legal knowledge but clearly indicate "
+            "this limitation and suggest official sources for authoritative information."
         )
     
+    return system_prompt, enhanced_query
+
+def _chat_with_openai_enhanced(message: str, temperature: float, max_tokens: int, top_p: float, enable_web_search: bool = True) -> str:
+    """Multi-step enhanced chat function with accuracy validation and database integration."""
+    client = _create_openai_client()
+    
+    # Step 1: Search legal database for relevant provisions
+    relevant_provisions = _search_legal_database(message)
+    
+    # Step 2: Generate accuracy-focused prompts
+    system_prompt, enhanced_message = _generate_accuracy_focused_prompt(message, relevant_provisions)
+    
+    # Step 3: Add web search guidance if enabled
+    if enable_web_search:
+        system_prompt += (
+            "\n\nWEB SEARCH GUIDANCE:\n"
+            "If the query involves recent changes, current events, or post-training information, "
+            "acknowledge this explicitly and provide specific guidance on official sources for current information."
+        )
+    
+    # Step 4: Prepare messages for API call
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": enhanced_message},
+        {"role": "user", "content": enhanced_message}
     ]
     
     model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
     fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
     
+    # Step 5: Generate response with fallback handling
     try:
         completion = client.chat.completions.create(
             model=model,
@@ -272,7 +532,7 @@ def _chat_with_openai_enhanced(message: str, temperature: float, max_tokens: int
             max_tokens=max_tokens,
             top_p=top_p,
         )
-        return completion.choices[0].message.content if completion.choices else ""
+        initial_response = completion.choices[0].message.content if completion.choices else ""
     except Exception as e:
         # Fallback handling
         if os.getenv("OPENAI_ENABLE_FALLBACK", "1") == "1" and model != fallback:
@@ -284,12 +544,55 @@ def _chat_with_openai_enhanced(message: str, temperature: float, max_tokens: int
                     max_tokens=max_tokens,
                     top_p=top_p,
                 )
-                return completion.choices[0].message.content if completion.choices else ""
+                initial_response = completion.choices[0].message.content if completion.choices else ""
             except Exception:
-                # If both primary and fallback fail, return error message
                 return f"I apologize, but I'm currently unable to process your request due to a technical issue. Please try again later or contact support if the problem persists. Error: {str(e)}"
         else:
             return f"I apologize, but I'm currently unable to process your request due to a technical issue. Please try again later. Error: {str(e)}"
+    
+    # Step 6: Validate response against database
+    validation = _validate_response_against_database(initial_response, relevant_provisions)
+    
+    # Step 7: Enhance response with validation insights
+    enhanced_response = initial_response
+    
+    # Add confidence and validation information
+    if relevant_provisions:
+        confidence_note = f"\n\n**Database Confidence: {validation['confidence_level'].upper()}**"
+        if validation['database_supported_claims']:
+            confidence_note += f"\n✓ Supported by database: {', '.join(validation['database_supported_claims'])}"
+        
+        if validation['confidence_level'] == 'low':
+            confidence_note += "\n⚠️ Limited database coverage - recommend checking official sources"
+            # Provide suggestions for better queries
+            suggestions = _suggest_alternative_queries(message, relevant_provisions)
+            if suggestions:
+                confidence_note += "\n\n**You might also ask:**\n"
+                for i, suggestion in enumerate(suggestions, 1):
+                    confidence_note += f"{i}. {suggestion}\n"
+        
+        enhanced_response += confidence_note
+    else:
+        # No relevant provisions found - provide comprehensive help
+        if len(initial_response.strip()) < 200:  # If response seems too brief/unhelpful
+            enhanced_response = _provide_help_response(message)
+        else:
+            enhanced_response += (
+                "\n\n**Note:** This response is based on general legal knowledge as no specific provisions "
+                "were found in the available database. For authoritative information, please consult "
+                "official sources such as austlii.edu.au or legislation.gov.au."
+            )
+            # Still provide suggestions
+            suggestions = _suggest_alternative_queries(message, [])
+            if suggestions:
+                enhanced_response += "\n\n**Related topics I can help with:**\n"
+                for i, suggestion in enumerate(suggestions, 1):
+                    enhanced_response += f"{i}. {suggestion}\n"
+    
+    # Add educational disclaimer
+    enhanced_response += "\n\n*This information is for educational purposes only and does not constitute legal advice.*"
+    
+    return enhanced_response
 
 def _l2_normalize(vecs: List[List[float]]) -> List[List[float]]:
     import math
@@ -712,6 +1015,67 @@ async def get_legal_provision(request: ProvisionRequest):
 @app.post("/api/legal/provision", response_model=ProvisionResponse)
 async def get_legal_provision_prefixed(request: ProvisionRequest):
     return await get_legal_provision(request)
+
+def _suggest_alternative_queries(original_query: str, available_provisions: List[dict]) -> List[str]:
+    """Suggest alternative queries based on available database content."""
+    suggestions = []
+    
+    # Extract key terms from available provisions
+    available_topics = set()
+    for prov in MOCK_PROVISIONS_DB.values():
+        title = prov['metadata'].get('title', '').lower()
+        available_topics.update(title.split())
+    
+    # Generate suggestions based on available content
+    topic_suggestions = {
+        'migration': ["What is the character test for visas?", "When must visa holders enter Australia?"],
+        'visa': ["What are the first entry deadline requirements?", "How can a visa be cancelled on character grounds?"],
+        'employment': ["What constitutes unfair dismissal?", "What is the Fair Work Commission's role in dismissals?"],
+        'dismissal': ["What are the elements of unfair dismissal?", "What is the Small Business Fair Dismissal Code?"],
+        'director': ["What are directors' duties under corporations law?", "What does acting in good faith mean for directors?"],
+        'corporate': ["What are the penalties for breaching directors' duties?", "When must directors act in the best interests of the corporation?"]
+    }
+    
+    query_lower = original_query.lower()
+    for topic, queries in topic_suggestions.items():
+        if topic in query_lower:
+            suggestions.extend(queries[:2])  # Limit to 2 suggestions per topic
+    
+    # If no specific suggestions, provide general ones
+    if not suggestions:
+        suggestions = [
+            "What is the character test under the Migration Act?",
+            "How is unfair dismissal defined in the Fair Work Act?",
+            "What are the key duties of company directors?"
+        ]
+    
+    return suggestions[:3]  # Return maximum 3 suggestions
+
+def _provide_help_response(query: str) -> str:
+    """Provide helpful guidance when a query cannot be answered accurately."""
+    suggestions = _suggest_alternative_queries(query, [])
+    
+    help_response = (
+        "I apologize, but I don't have sufficient information in my legal database to provide an accurate answer to your specific question.\n\n"
+        "**What I can help with:**\n"
+        "• Migration Act provisions (character test, visa requirements)\n"
+        "• Fair Work Act provisions (unfair dismissal)\n"
+        "• Corporations Act provisions (directors' duties)\n\n"
+        "**Try asking:**\n"
+    )
+    
+    for i, suggestion in enumerate(suggestions, 1):
+        help_response += f"{i}. {suggestion}\n"
+    
+    help_response += (
+        "\n**For comprehensive legal information:**\n"
+        "• AustLII (austlii.edu.au) - Australian Legal Information Institute\n"
+        "• Federal Register of Legislation (legislation.gov.au)\n"
+        "• Your jurisdiction's government legal resources\n\n"
+        "*This system provides educational information only and does not constitute legal advice.*"
+    )
+    
+    return help_response
 
 def generate_lookup_key(act_name: str, year: str, jurisdiction: str, provision: str) -> str:
     """Generate a lookup key for the mock provisions database"""
