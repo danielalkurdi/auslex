@@ -22,13 +22,13 @@ module.exports = {
         },
         accent: {
           DEFAULT: '#CE9A54', // Warm Ochre
-          focus: '#C9A063',   // Pale Copper
+          focus: '#5A5A5A',   // Neutral gray
           hover: '#D4A562',   // Slightly lighter ochre
         },
         border: {
           subtle: '#3C3C3C',
-          secondary: '#CBAE88', // Almond Buff
-          focus: '#C9A063',    // Focus ring color
+          secondary: '#5A5A5A', // Neutral gray
+          focus: '#5A5A5A',    // Focus ring color
         },
         button: {
           primary: {
@@ -40,7 +40,7 @@ module.exports = {
           secondary: {
             bg: 'transparent',
             text: '#FEFEFE',
-            border: '#CBAE88', // Almond buff border
+            border: '#5A5A5A', // Neutral gray border
             hover: '#1C1C1C',  // Subtle background on hover
           }
         },

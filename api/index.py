@@ -39,7 +39,7 @@ if allowed_origins_str:
     allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 else:
     # For development and Vercel deployment
-    allowed_origins = ["http://localhost:3000", "http://localhost:3001"]
+    allowed_origins = ["*"]  # Allow all origins for now
     
 app.add_middleware(
     CORSMiddleware,
@@ -173,11 +173,16 @@ def _create_openai_client() -> OpenAI:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORG")
     project = os.getenv("OPENAI_PROJECT")
-    kwargs = {}
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=500, 
+            detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
+        )
+    
+    kwargs = {"api_key": api_key}
     if base_url:
         kwargs["base_url"] = base_url
-    if api_key:
-        kwargs["api_key"] = api_key
     if organization:
         kwargs["organization"] = organization
     if project:
