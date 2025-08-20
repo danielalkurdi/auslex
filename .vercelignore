@@ -1,17 +1,77 @@
-# Exclude heavy dependencies and unnecessary files
-api/legal_corpus.py
-backend/
-requirements.txt
-demo_*.py
-test_*.py
-node_modules/
-.git/
+# Exclude heavy dependencies and unnecessary files from deployment
+
+# Python cache and compiled files
 *.pyc
 __pycache__/
-.env
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Heavy corpus files - keep only essential ones
+api/legal_corpus.py
+legal_corpus_cache/
+*.pkl
+*.json.gz
+
+# Development and testing files
+demo_*.py
+test_*.py
+*_test.py
+backend/
+.git/
+.github/
+.vscode/
+.idea/
+.DS_Store
+
+# Documentation and configs not needed in production
+*.md
+!README.md
 docker-compose.yml
 Dockerfile
 nginx.conf
-legal_corpus_cache/
+.env.example
+.env.local
+.env.development
+lighthouse-report.html
+
+# Build artifacts and caches
 build/
-*.pkl
+dist/
+.cache/
+coverage/
+node_modules/.cache/
+.npm/
+.yarn/
+
+# Webpack analysis reports
+bundle-report.html
+webpack-stats.json
+
+# Log files
+*.log
+logs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Reduce deployment size - only include essential API modules
+# Keep these core files:
+# - api/index.py (main FastAPI app)
+# - api/legal_corpus_lite.py (lightweight corpus)
+# - api/ai_research_engine.py (core AI functionality)
+# - api/requirements.txt (dependencies)
