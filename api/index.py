@@ -12,7 +12,17 @@ from datetime import datetime, timedelta
 from passlib.hash import bcrypt
 from typing import List, Literal, Optional, Tuple
 from openai import OpenAI
-from legal_corpus_lite import initialize_corpus, search_legal_provisions, find_specific_legal_provision, get_corpus_stats
+try:
+    from legal_corpus_lite import initialize_corpus, search_legal_provisions, find_specific_legal_provision, get_corpus_stats
+    LEGAL_CORPUS_AVAILABLE = True
+except ImportError as e:
+    print(f"Legal corpus not available: {e}")
+    LEGAL_CORPUS_AVAILABLE = False
+    initialize_corpus = lambda: None
+    search_legal_provisions = lambda query, top_k=10: []
+    find_specific_legal_provision = lambda citation: None
+    get_corpus_stats = lambda: {"status": "unavailable", "total_provisions": 0}
+
 try:
     from ai_research_engine import AdvancedLegalResearcher, ResearchContext, JurisdictionType, LegalAreaType
     AI_RESEARCH_AVAILABLE = True
@@ -41,6 +51,8 @@ def get_research_engine():
 # Initialize legal corpus on first use
 def ensure_corpus_initialized():
     """Ensure legal corpus is initialized (lightweight operation)"""
+    if not LEGAL_CORPUS_AVAILABLE:
+        return
     if not hasattr(ensure_corpus_initialized, 'initialized'):
         initialize_corpus()
         ensure_corpus_initialized.initialized = True
@@ -67,6 +79,38 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    """Health check endpoint"""
+    return {
+        "message": "AusLex AI API is running",
+        "version": "2.0.0",
+        "status": "healthy",
+        "features": {
+            "legal_corpus": LEGAL_CORPUS_AVAILABLE,
+            "ai_research": AI_RESEARCH_AVAILABLE
+        }
+    }
+
+@app.get("/api")
+async def api_root():
+    """API root endpoint"""
+    return {
+        "message": "AusLex AI API",
+        "version": "2.0.0",
+        "endpoints": [
+            "/api/chat",
+            "/api/auth/register",
+            "/api/auth/login",
+            "/api/legal/provision",
+            "/api/corpus/stats"
+        ],
+        "features": {
+            "legal_corpus": LEGAL_CORPUS_AVAILABLE,
+            "ai_research": AI_RESEARCH_AVAILABLE
+        }
+    }
 
 # Simple in-memory storage (use a database in production)
 users_db = {}

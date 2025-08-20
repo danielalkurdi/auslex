@@ -17,6 +17,7 @@ build/
 *.pkl
 
 # Exclude advanced components that may cause serverless issues
+api/ai_research_engine.py
 api/performance_optimizer.py
 api/circuit_breaker.py
 api/hardened_endpoints.py
