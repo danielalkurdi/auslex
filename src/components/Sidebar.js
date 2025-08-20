@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Plus, Settings, BookOpen, Check, X, LogIn, LogOut, User } from 'lucide-react';
+import { Plus, Settings, BookOpen, Check, X, LogIn, LogOut, User, Brain, Users } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 // Bootstrap Icons as React components
@@ -38,6 +38,8 @@ const Sidebar = React.memo(({
   onDeleteChat,
   onSaveChat,
   onSettingsClick,
+  onAdvancedResearchClick,
+  onCollaborationClick,
   onAboutClick,
   user,
   isAuthenticated,
@@ -129,9 +131,11 @@ const Sidebar = React.memo(({
               setIsMobileSidebarOpen(false);
             }
           }} 
-          className={`w-full flex items-center p-2 rounded hover:bg-border-subtle ${
-            !isMobile && isCollapsed ? 'justify-center' : 'gap-2'
-          }`}
+          className={`w-full flex items-center p-3 rounded-lg transition-all duration-150 border-1 
+                     bg-button-primary-bg text-button-primary-text border-button-primary-border
+                     hover:bg-button-primary-hover hover:border-accent-hover
+                     focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary
+                     ${!isMobile && isCollapsed ? 'justify-center' : 'gap-2'}`}
           aria-label="Start new chat"
         >
           <Plus size={20} />
@@ -144,8 +148,8 @@ const Sidebar = React.memo(({
           <>
             <span className="px-2 text-xs font-semibold text-text-placeholder">History</span>
             {chats.map(chat => (
-          <div key={chat.id} className={`group flex items-center justify-between p-2 rounded cursor-pointer
-            ${activeChatId === chat.id ? 'bg-border-subtle' : 'hover:bg-border-subtle'}`}
+          <div key={chat.id} className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-150
+            ${activeChatId === chat.id ? 'bg-background-elevated border-1 border-border-focus' : 'hover:bg-background-elevated'}`}
             onClick={() => onSelectChat(chat.id)}>
 
             {editingChatId === chat.id ? (
@@ -153,7 +157,7 @@ const Sidebar = React.memo(({
                 type="text"
                 value={editingTitle}
                 onChange={(e) => setEditingTitle(e.target.value)}
-                className="bg-transparent w-full outline-none"
+                className="bg-transparent w-full outline-none text-text-primary border-b-1 border-border-focus focus:border-accent"
                 autoFocus
                 aria-label="Edit chat title"
                 onKeyDown={(e) => {
@@ -217,7 +221,10 @@ const Sidebar = React.memo(({
       <div className="p-2 border-t border-border-subtle">
         <button 
           onClick={onAboutClick} 
-          className="w-full flex items-center gap-2 p-2 rounded hover:bg-border-subtle"
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
+                     bg-button-secondary-bg text-button-secondary-text border-button-secondary-border
+                     hover:bg-button-secondary-hover hover:border-border-focus
+                     focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
           aria-label="About AusLex"
         >
           <BookOpen size={20} />
@@ -225,11 +232,38 @@ const Sidebar = React.memo(({
         </button>
         <button 
           onClick={onSettingsClick} 
-          className="w-full flex items-center gap-2 p-2 rounded hover:bg-border-subtle"
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
+                     bg-button-secondary-bg text-button-secondary-text border-button-secondary-border
+                     hover:bg-button-secondary-hover hover:border-border-focus
+                     focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
           aria-label="Open settings"
         >
           <Settings size={20} />
           {!isCollapsed && <span>Settings</span>}
+        </button>
+        
+        <button 
+          onClick={onAdvancedResearchClick} 
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
+                     bg-accent-gold/10 text-accent-gold border-accent-gold/20
+                     hover:bg-accent-gold/20 hover:border-accent-gold/40
+                     focus-visible:ring-2 focus-visible:ring-accent-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
+          aria-label="Advanced Research"
+        >
+          <Brain size={20} />
+          {!isCollapsed && <span>Advanced Research</span>}
+        </button>
+        
+        <button 
+          onClick={onCollaborationClick} 
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
+                     bg-button-secondary-bg text-button-secondary-text border-button-secondary-border
+                     hover:bg-button-secondary-hover hover:border-border-focus
+                     focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
+          aria-label="Collaboration"
+        >
+          <Users size={20} />
+          {!isCollapsed && <span>Collaboration</span>}
         </button>
         
         {/* Authentication Section */}
@@ -245,7 +279,10 @@ const Sidebar = React.memo(({
             )}
             <button 
               onClick={onLogout} 
-              className="w-full flex items-center gap-2 p-2 rounded hover:bg-border-subtle text-status-warning hover:text-status-warning"
+              className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
+                         bg-transparent text-status-warning border-status-warning
+                         hover:bg-status-warning/10 hover:border-status-warning
+                         focus-visible:ring-2 focus-visible:ring-status-warning focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
               aria-label="Sign out"
             >
               <LogOut size={20} />
@@ -255,7 +292,10 @@ const Sidebar = React.memo(({
         ) : (
           <button 
             onClick={onAuthClick} 
-            className="w-full flex items-center gap-2 p-2 rounded hover:bg-border-subtle text-accent hover:text-accent-focus"
+            className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
+                       bg-transparent text-accent border-accent
+                       hover:bg-accent/10 hover:border-accent-hover
+                       focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
             aria-label="Sign in"
           >
             <LogIn size={20} />
@@ -283,6 +323,8 @@ Sidebar.propTypes = {
   onDeleteChat: PropTypes.func.isRequired,
   onSaveChat: PropTypes.func.isRequired,
   onSettingsClick: PropTypes.func.isRequired,
+  onAdvancedResearchClick: PropTypes.func.isRequired,
+  onCollaborationClick: PropTypes.func.isRequired,
   onAboutClick: PropTypes.func.isRequired,
   user: PropTypes.object,
   isAuthenticated: PropTypes.bool.isRequired,

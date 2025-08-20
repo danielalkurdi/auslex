@@ -1,0 +1,12 @@
+{
+  "low": true,
+  "moderate": true,
+  "high": true,
+  "critical": true,
+  "allowlist": [
+    // Add any known acceptable vulnerabilities here
+    // Example: "GHSA-xxxx-xxxx-xxxx"
+  ],
+  "report-type": "important",
+  "package-manager": "npm"
+}

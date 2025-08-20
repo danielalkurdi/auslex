@@ -111,12 +111,12 @@ const generateWelcomeMessages = () => {
 };
 
 const InputArea = React.memo(({ inputMessage, setInputMessage, handleSubmit, handleKeyDown, isLoading, textareaRef, isFloating = false }) => (
-  <div className={isFloating ? "w-full" : "bg-background-primary pt-4 pb-4 sm:pb-6 sticky bottom-0"}>
-    <div className={isFloating ? "w-full" : "w-full max-w-3xl mx-auto px-3 sm:px-4"}>
+  <div className={isFloating ? "w-full" : "bg-background-primary pt-6 pb-6 sm:pb-8 sticky bottom-0 border-t border-border-subtle"}>
+    <div className={isFloating ? "w-full" : "w-full max-w-3xl mx-auto px-4 sm:px-6"}>
       <div className="relative" onKeyDown={handleKeyDown}>
         <div className={`
-          flex items-center gap-2 sm:gap-3 bg-background-secondary rounded-full px-3 sm:px-5 py-3 sm:py-4 border-1 border-border-subtle focus-within:border-border-secondary transition-colors duration-200
-          ${isFloating ? 'shadow-lg' : ''}
+          flex items-center gap-3 sm:gap-4 bg-background-secondary rounded-lg px-4 sm:px-5 py-3 sm:py-4 border-1 border-border-subtle focus-within:border-border-focus transition-all duration-200
+          ${isFloating ? 'shadow-soft' : ''}
         `}>
           <textarea
             ref={textareaRef}
@@ -124,7 +124,7 @@ const InputArea = React.memo(({ inputMessage, setInputMessage, handleSubmit, han
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask anything..."
-            className="flex-1 w-full bg-transparent border-none outline-none resize-none appearance-none text-sm sm:text-base text-text-primary placeholder-text-placeholder focus:outline-none focus-visible:outline-none"
+            className="flex-1 w-full bg-transparent border-none outline-none resize-none appearance-none text-base text-text-primary placeholder-text-placeholder focus:outline-none focus-visible:outline-none leading-relaxed"
             autoFocus
             rows="1"
             disabled={isLoading}
@@ -133,10 +133,11 @@ const InputArea = React.memo(({ inputMessage, setInputMessage, handleSubmit, han
           />
           <button
             onClick={handleSubmit}
-            className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full flex items-center justify-center transition-colors duration-150
-                       bg-gray-700 text-white
-                       hover:bg-gray-600
-                       disabled:bg-disabled-bg disabled:text-disabled-text disabled:cursor-not-allowed"
+            className="w-10 h-10 sm:w-11 sm:h-11 flex-shrink-0 rounded-full flex items-center justify-center transition-all duration-150 border-1
+                       bg-button-primary-bg text-button-primary-text border-button-primary-border
+                       hover:bg-button-primary-hover hover:border-accent-hover
+                       disabled:bg-disabled-bg disabled:text-disabled-text disabled:border-disabled-border disabled:cursor-not-allowed
+                       focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-primary"
             disabled={!inputMessage.trim() || isLoading}
             aria-label={isLoading ? 'Processing...' : 'Send message'}
           >
@@ -196,10 +197,15 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
         // Empty state with centered input
         <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 relative">
           {welcomeMessages.length > 0 && (
-            <TypewriterText 
-              messages={welcomeMessages} 
-              className="text-xl sm:text-2xl md:text-3xl font-semibold mb-6 sm:mb-8 min-h-[3rem] px-4"
-            />
+            <div className="text-center mb-8 sm:mb-12 px-4">
+              <TypewriterText 
+                messages={welcomeMessages} 
+                className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-text-primary leading-tight"
+              />
+              <p className="text-base sm:text-lg text-text-muted mt-4 max-w-2xl mx-auto leading-relaxed">
+                Ask questions about Australian law, get accurate answers with proper citations
+              </p>
+            </div>
           )}
           <div className="w-full max-w-2xl px-4">
             <InputArea 
@@ -217,15 +223,15 @@ const ChatInterface = React.memo(({ messages, onSendMessage, isLoading, messages
         // Chat state with messages and bottom input
         <>
           <div className="flex-1 overflow-y-auto">
-            <div className="space-y-4 py-4 sm:py-6 max-w-4xl mx-auto w-full px-3 sm:px-4">
+            <div className="space-y-6 py-6 sm:py-8 max-w-4xl mx-auto w-full px-4 sm:px-6">
               {messages.map((message) => (
                 <Message key={message.id} message={message} />
               ))}
               {isLoading && (
                 <div className="flex justify-start animate-fade-in">
-                  <div className="flex items-center gap-2 text-text-placeholder text-base">
-                    <Loader2 className="w-4 h-4 animate-slow-spin" />
-                    <span>AusLex is thinking...</span>
+                  <div className="flex items-center gap-3 text-text-muted text-base bg-background-elevated p-4 rounded-lg border-1 border-border-subtle">
+                    <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin"></div>
+                    <span className="font-medium">AusLex is analyzing your question...</span>
                   </div>
                 </div>
               )}

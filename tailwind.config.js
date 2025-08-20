@@ -10,29 +10,49 @@ module.exports = {
         background: {
           primary: '#0D0D0D', // Deep Black
           secondary: '#1C1C1C', // Jet Black
+          elevated: '#2A2A2A', // Slightly elevated surfaces
         },
         text: {
           primary: '#FEFEFE',
           secondary: '#E8E8E8',
-          placeholder: '#B0B0B0',
+          muted: '#B0B0B0',
+          placeholder: '#8A8A8A',
           accent: '#CE9A54',
-          disabled: '#B0B0B0',
+          disabled: '#6A6A6A',
         },
         accent: {
           DEFAULT: '#CE9A54', // Warm Ochre
-          focus: '#C9A063',   // Pale Copper
+          focus: '#5A5A5A',   // Neutral gray
+          hover: '#D4A562',   // Slightly lighter ochre
         },
         border: {
           subtle: '#3C3C3C',
-          secondary: '#CBAE88', // Almond Buff
+          secondary: '#5A5A5A', // Neutral gray
+          focus: '#5A5A5A',    // Focus ring color
+        },
+        button: {
+          primary: {
+            bg: '#0D0D0D',     // Jet black fill
+            text: '#C9A063',   // Ochre/pale copper text
+            border: '#CE9A54', // Slim ochre border
+            hover: '#1C1C1C',  // Slightly lighter on hover
+          },
+          secondary: {
+            bg: 'transparent',
+            text: '#FEFEFE',
+            border: '#5A5A5A', // Neutral gray border
+            hover: '#1C1C1C',  // Subtle background on hover
+          }
         },
         status: {
           warning: '#A97142', // Caramel Café
           success: '#E8B467', // Muted Saffron
+          error: '#D47F7F',   // Muted red
         },
         disabled: {
-          bg: '#3C3C3C',
-          text: '#B0B0B0',
+          bg: '#2A2A2A',
+          text: '#6A6A6A',
+          border: '#3C3C3C',
         }
       },
 
