@@ -16,18 +16,23 @@ from legal_corpus_lite import initialize_corpus, search_legal_provisions, find_s
 from ai_research_engine import AdvancedLegalResearcher, ResearchContext, JurisdictionType, LegalAreaType
 
 app = FastAPI(title="AusLex AI API", version="2.0.0", description="World-class Australian Legal AI Platform")
-# Initialize advanced research engine
-research_engine = AdvancedLegalResearcher()
 
-# Initialize legal corpus on startup
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the legal corpus on application startup"""
-    import threading
-    # Initialize corpus in background thread to avoid blocking startup
-    corpus_thread = threading.Thread(target=initialize_corpus)
-    corpus_thread.daemon = True
-    corpus_thread.start()
+# Initialize advanced research engine (lazy initialization)
+research_engine = None
+
+def get_research_engine():
+    """Get or create research engine instance"""
+    global research_engine
+    if research_engine is None:
+        research_engine = AdvancedLegalResearcher()
+    return research_engine
+
+# Initialize legal corpus on first use
+def ensure_corpus_initialized():
+    """Ensure legal corpus is initialized (lightweight operation)"""
+    if not hasattr(ensure_corpus_initialized, 'initialized'):
+        initialize_corpus()
+        ensure_corpus_initialized.initialized = True
 
 # Security
 SECRET_KEY = os.getenv("JWT_SECRET_KEY") or secrets.token_urlsafe(32)
@@ -262,6 +267,8 @@ def _extract_legal_concepts(query: str) -> List[str]:
 def _search_legal_database(query: str) -> List[dict]:
     """Enhanced search using the comprehensive Australian Legal Corpus."""
     try:
+        # Ensure corpus is initialized
+        ensure_corpus_initialized()
         # First, try to search the comprehensive legal corpus
         corpus_results = search_legal_provisions(query, top_k=10)
         
@@ -1064,6 +1071,7 @@ async def chat_prefixed(request: ChatRequest):
 @app.get("/api/corpus/stats")
 async def get_corpus_statistics():
     """Get statistics about the loaded legal corpus"""
+    ensure_corpus_initialized()
     return get_corpus_stats()
 
 @app.post("/legal/provision", response_model=ProvisionResponse)
@@ -1163,7 +1171,8 @@ async def advanced_legal_research(request: AdvancedResearchRequest):
         )
         
         # Perform comprehensive research
-        research_results = await research_engine.comprehensive_legal_research(context)
+        engine = get_research_engine()
+        research_results = engine.comprehensive_legal_research(context)
         
         return AdvancedResearchResponse(
             comprehensive_analysis=research_results["comprehensive_analysis"],

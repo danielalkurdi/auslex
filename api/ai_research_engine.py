@@ -4,7 +4,7 @@ Provides sophisticated legal analysis, multi-jurisdiction support, and precedent
 """
 
 import json
-import asyncio
+import time
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -115,31 +115,28 @@ class AdvancedLegalResearcher:
                 project=os.getenv("OPENAI_PROJECT")
             )
     
-    async def comprehensive_legal_research(
+    def comprehensive_legal_research(
         self, 
         context: ResearchContext
     ) -> Dict[str, any]:
         """
         Perform comprehensive legal research across multiple dimensions
         """
-        tasks = []
+        results = []
         
-        # Parallel research tasks
-        tasks.append(self._analyze_legislation(context))
-        tasks.append(self._find_relevant_precedents(context))
-        tasks.append(self._extract_legal_principles(context))
-        tasks.append(self._assess_jurisdiction_variations(context))
+        # Sequential research tasks (simplified for serverless)
+        results.append(self._analyze_legislation(context))
+        results.append(self._find_relevant_precedents(context))
+        results.append(self._extract_legal_principles(context))
+        results.append(self._assess_jurisdiction_variations(context))
         
         if context.include_commentary:
-            tasks.append(self._gather_scholarly_commentary(context))
+            results.append(self._gather_scholarly_commentary(context))
             
-        # Execute all research tasks in parallel
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
         # Synthesize comprehensive analysis
-        return await self._synthesize_research_findings(context, results)
+        return self._synthesize_research_findings(context, results)
     
-    async def _analyze_legislation(self, context: ResearchContext) -> Dict[str, any]:
+    def _analyze_legislation(self, context: ResearchContext) -> Dict[str, any]:
         """Analyze relevant legislation with cross-jurisdictional comparison"""
         
         system_prompt = """You are an expert legal researcher specializing in Australian legislation analysis.
@@ -163,7 +160,7 @@ class AdvancedLegalResearcher:
         - Practical compliance implications
         """
         
-        completion = await self.openai_client.chat.completions.acreate(
+        completion = self.openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -179,7 +176,7 @@ class AdvancedLegalResearcher:
             "timestamp": datetime.utcnow().isoformat()
         }
     
-    async def _find_relevant_precedents(self, context: ResearchContext) -> List[LegalPrecedent]:
+    def _find_relevant_precedents(self, context: ResearchContext) -> List[LegalPrecedent]:
         """Find and analyze relevant legal precedents"""
         
         precedent_prompt = f"""
@@ -200,7 +197,7 @@ class AdvancedLegalResearcher:
         - Current status (followed/distinguished/overruled)
         """
         
-        completion = await self.openai_client.chat.completions.acreate(
+        completion = self.openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an expert in Australian case law and legal precedents."},
@@ -214,7 +211,7 @@ class AdvancedLegalResearcher:
         precedent_text = completion.choices[0].message.content
         return self._parse_precedent_response(precedent_text, context)
     
-    async def _extract_legal_principles(self, context: ResearchContext) -> Dict[str, any]:
+    def _extract_legal_principles(self, context: ResearchContext) -> Dict[str, any]:
         """Extract and analyze underlying legal principles"""
         
         principles_prompt = f"""
@@ -231,7 +228,7 @@ class AdvancedLegalResearcher:
         Legal Areas: {[a.value for a in context.legal_areas]}
         """
         
-        completion = await self.openai_client.chat.completions.acreate(
+        completion = self.openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a legal scholar expert in Australian jurisprudence and legal theory."},
@@ -247,7 +244,7 @@ class AdvancedLegalResearcher:
             "timestamp": datetime.utcnow().isoformat()
         }
     
-    async def _assess_jurisdiction_variations(self, context: ResearchContext) -> Dict[str, any]:
+    def _assess_jurisdiction_variations(self, context: ResearchContext) -> Dict[str, any]:
         """Assess variations across different jurisdictions"""
         
         if len(context.jurisdiction_focus) <= 1:
@@ -266,7 +263,7 @@ class AdvancedLegalResearcher:
         5. Harmonization efforts or conflicts
         """
         
-        completion = await self.openai_client.chat.completions.acreate(
+        completion = self.openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an expert in comparative Australian law across federal, state and territory jurisdictions."},
@@ -282,7 +279,7 @@ class AdvancedLegalResearcher:
             "timestamp": datetime.utcnow().isoformat()
         }
     
-    async def _gather_scholarly_commentary(self, context: ResearchContext) -> Dict[str, any]:
+    def _gather_scholarly_commentary(self, context: ResearchContext) -> Dict[str, any]:
         """Gather relevant scholarly commentary and analysis"""
         
         commentary_prompt = f"""
@@ -298,7 +295,7 @@ class AdvancedLegalResearcher:
         Focus on Australian legal scholarship with international comparisons where beneficial.
         """
         
-        completion = await self.openai_client.chat.completions.acreate(
+        completion = self.openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a legal academic with expertise in Australian law and international comparative analysis."},
@@ -314,7 +311,7 @@ class AdvancedLegalResearcher:
             "timestamp": datetime.utcnow().isoformat()
         }
     
-    async def _synthesize_research_findings(
+    def _synthesize_research_findings(
         self, 
         context: ResearchContext, 
         research_results: List[Dict[str, any]]
@@ -341,7 +338,7 @@ class AdvancedLegalResearcher:
         6. Rates confidence level in conclusions
         """
         
-        completion = await self.openai_client.chat.completions.acreate(
+        completion = self.openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a senior legal researcher creating comprehensive analysis from multiple research sources."},
