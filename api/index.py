@@ -13,7 +13,16 @@ from passlib.hash import bcrypt
 from typing import List, Literal, Optional, Tuple
 from openai import OpenAI
 from legal_corpus_lite import initialize_corpus, search_legal_provisions, find_specific_legal_provision, get_corpus_stats
-from ai_research_engine import AdvancedLegalResearcher, ResearchContext, JurisdictionType, LegalAreaType
+try:
+    from ai_research_engine import AdvancedLegalResearcher, ResearchContext, JurisdictionType, LegalAreaType
+    AI_RESEARCH_AVAILABLE = True
+except ImportError as e:
+    print(f"AI research engine not available: {e}")
+    AI_RESEARCH_AVAILABLE = False
+    AdvancedLegalResearcher = None
+    ResearchContext = None
+    JurisdictionType = None
+    LegalAreaType = None
 
 app = FastAPI(title="AusLex AI API", version="2.0.0", description="World-class Australian Legal AI Platform")
 
@@ -23,6 +32,8 @@ research_engine = None
 def get_research_engine():
     """Get or create research engine instance"""
     global research_engine
+    if not AI_RESEARCH_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AI research engine not available")
     if research_engine is None:
         research_engine = AdvancedLegalResearcher()
     return research_engine
@@ -1141,6 +1152,9 @@ async def advanced_legal_research(request: AdvancedResearchRequest):
     """
     Perform comprehensive legal research using advanced AI analysis
     """
+    if not AI_RESEARCH_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Advanced research features temporarily unavailable")
+    
     try:
         # Convert string jurisdictions to enum types
         jurisdiction_types = []
@@ -1187,6 +1201,8 @@ async def advanced_legal_research(request: AdvancedResearchRequest):
 
 @app.post("/api/research/advanced", response_model=AdvancedResearchResponse)
 async def advanced_legal_research_prefixed(request: AdvancedResearchRequest):
+    if not AI_RESEARCH_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Advanced research features temporarily unavailable")
     return await advanced_legal_research(request)
 
 @app.post("/research/memo", response_model=LegalMemoResponse)
