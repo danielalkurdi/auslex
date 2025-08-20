@@ -1,0 +1,17 @@
+# Exclude heavy dependencies and unnecessary files
+api/legal_corpus.py
+backend/
+requirements.txt
+demo_*.py
+test_*.py
+node_modules/
+.git/
+*.pyc
+__pycache__/
+.env
+docker-compose.yml
+Dockerfile
+nginx.conf
+legal_corpus_cache/
+build/
+*.pkl
