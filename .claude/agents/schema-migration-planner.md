@@ -1,7 +1,7 @@
 ---
 name: schema-migration-planner
 model: sonnet
-description: Use to design safe PostgreSQL schema evolutions and rollbacks for Auslex.
+description: MUST BE USED to design safe PostgreSQL schema evolutions and rollbacks for Auslex.
 ---
 
 

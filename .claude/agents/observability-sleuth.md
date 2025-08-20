@@ -1,7 +1,7 @@
 ---
 name: observability-sleuth
 model: sonnet
-description: Use for incident investigation, performance regressions, and anomaly detection across Vercel + Neon.
+description: MUST BE USED for incident investigation, performance regressions, and anomaly detection across Vercel + Neon.
 ---
 
 

@@ -1,7 +1,7 @@
 ---
 name: vercel-deployment-expert
 model: sonnet
-description: Use to configure and deploy with Vercel (builds, env vars, domains, edge/serverless, CI workflows, troubleshooting).
+description: MUST BE USED to configure and deploy with Vercel (builds, env vars, domains, edge/serverless, CI workflows, troubleshooting).
 ---
 
 

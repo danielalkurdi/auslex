@@ -1,7 +1,7 @@
 ---
 name: neon-db-expert
 model: sonnet
-description: Use for Neon PostgreSQL operations: schema design, branching, performance, troubleshooting, migrations.
+description: MUST BE USED for Neon PostgreSQL operations: schema design, branching, performance, troubleshooting, migrations.
 ---
 
 

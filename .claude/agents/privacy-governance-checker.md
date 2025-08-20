@@ -1,7 +1,7 @@
 ---
 name: privacy-governance-checker
 model: sonnet
-description: Use to review code/PRs/config touching data capture, storage, or transmission; advise on privacy & governance.
+description: MUST BE USED to review code/PRs/config touching data capture, storage, or transmission; advise on privacy & governance.
 ---
 
 

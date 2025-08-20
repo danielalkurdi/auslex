@@ -1,7 +1,7 @@
 ---
 name: playwright-qa-engineer
 model: sonnet
-description: Use to generate, run, and maintain deterministic E2E tests for Auslex (preview URLs + CI).
+description: MUST BE USED to generate, run, and maintain deterministic E2E tests for Auslex (preview URLs + CI).
 ---
 
 

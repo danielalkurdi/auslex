@@ -1,7 +1,7 @@
 ---
 name: dataset-ingestion-captain
 model: sonnet
-description: Use when ingesting legal datasets into Auslex, planning ingestion workflows, assessing corpus quality, or registering artifacts and lineage.
+description: MUST BE USED when ingesting legal datasets into Auslex, planning ingestion workflows, assessing corpus quality, or registering artifacts and lineage.
 ---
 
 

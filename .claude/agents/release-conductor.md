@@ -1,7 +1,7 @@
 ---
 name: release-conductor
 model: sonnet
-description: Use to orchestrate end‑to‑end releases: Neon branching & migrations → Vercel preview → Playwright E2E → Ship Report.
+description: MUST BE USED to orchestrate end‑to‑end releases: Neon branching & migrations → Vercel preview → Playwright E2E → Ship Report.
 ---
 
 

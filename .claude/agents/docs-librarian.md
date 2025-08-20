@@ -1,7 +1,7 @@
 ---
 name: docs-librarian
 model: sonnet
-description: Use when the user needs precise, citable facts about Auslex with file paths and anchors.
+description: MUST BE USED when the user needs precise, citable facts about Auslex with file paths and anchors.
 ---
 
 

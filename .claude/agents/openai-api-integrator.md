@@ -1,7 +1,7 @@
 ---
 name: openai-api-integrator
 model: sonnet
-description: Use to design, implement, and harden OpenAI API integrations (streaming, function/tool calling, evals, rate‑limit & cost controls).
+description: MUST BE USED to design, implement, and harden OpenAI API integrations (streaming, function/tool calling, evals, rate‑limit & cost controls).
 ---
 
 
