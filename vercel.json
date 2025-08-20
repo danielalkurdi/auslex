@@ -10,10 +10,7 @@
     },
     {
       "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "excludeFiles": ["api/legal_corpus.py", "backend/**", "requirements.txt", "demo_*.py", "test_*.py"]
-      }
+      "use": "@vercel/python"
     }
   ],
   "routes": [
