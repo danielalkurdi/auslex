@@ -5,6 +5,8 @@ import SettingsPanel from './components/SettingsPanel';
 import AboutUs from './components/AboutUs';
 import Sidebar from './components/Sidebar';
 import AuthModal from './components/AuthModal';
+import AdvancedResearch from './components/AdvancedResearch';
+import CollaborationPanel from './components/CollaborationPanel';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 function AppContent() {
@@ -14,6 +16,8 @@ function AppContent() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAdvancedResearch, setShowAdvancedResearch] = useState(false);
+  const [showCollaboration, setShowCollaboration] = useState(false);
   const [currentPage, setCurrentPage] = useState('chat');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -249,6 +253,14 @@ function AppContent() {
           setShowSettings(true);
           setIsMobileSidebarOpen(false);
         }}
+        onAdvancedResearchClick={() => {
+          setShowAdvancedResearch(true);
+          setIsMobileSidebarOpen(false);
+        }}
+        onCollaborationClick={() => {
+          setShowCollaboration(true);
+          setIsMobileSidebarOpen(false);
+        }}
         onAboutClick={() => {
           setCurrentPage('about');
           setIsMobileSidebarOpen(false);
@@ -295,6 +307,19 @@ function AppContent() {
             login(userData);
             setShowAuthModal(false);
           }}
+        />
+      )}
+
+      {showAdvancedResearch && (
+        <AdvancedResearch
+          onClose={() => setShowAdvancedResearch(false)}
+        />
+      )}
+
+      {showCollaboration && (
+        <CollaborationPanel
+          onClose={() => setShowCollaboration(false)}
+          currentUser={user}
         />
       )}
     </div>

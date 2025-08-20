@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Plus, Settings, BookOpen, Check, X, LogIn, LogOut, User } from 'lucide-react';
+import { Plus, Settings, BookOpen, Check, X, LogIn, LogOut, User, Brain, Users } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 // Bootstrap Icons as React components
@@ -38,6 +38,8 @@ const Sidebar = React.memo(({
   onDeleteChat,
   onSaveChat,
   onSettingsClick,
+  onAdvancedResearchClick,
+  onCollaborationClick,
   onAboutClick,
   user,
   isAuthenticated,
@@ -240,6 +242,30 @@ const Sidebar = React.memo(({
           {!isCollapsed && <span>Settings</span>}
         </button>
         
+        <button 
+          onClick={onAdvancedResearchClick} 
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
+                     bg-accent-gold/10 text-accent-gold border-accent-gold/20
+                     hover:bg-accent-gold/20 hover:border-accent-gold/40
+                     focus-visible:ring-2 focus-visible:ring-accent-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
+          aria-label="Advanced Research"
+        >
+          <Brain size={20} />
+          {!isCollapsed && <span>Advanced Research</span>}
+        </button>
+        
+        <button 
+          onClick={onCollaborationClick} 
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
+                     bg-button-secondary-bg text-button-secondary-text border-button-secondary-border
+                     hover:bg-button-secondary-hover hover:border-border-focus
+                     focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
+          aria-label="Collaboration"
+        >
+          <Users size={20} />
+          {!isCollapsed && <span>Collaboration</span>}
+        </button>
+        
         {/* Authentication Section */}
         {isAuthenticated ? (
           <>
@@ -297,6 +323,8 @@ Sidebar.propTypes = {
   onDeleteChat: PropTypes.func.isRequired,
   onSaveChat: PropTypes.func.isRequired,
   onSettingsClick: PropTypes.func.isRequired,
+  onAdvancedResearchClick: PropTypes.func.isRequired,
+  onCollaborationClick: PropTypes.func.isRequired,
   onAboutClick: PropTypes.func.isRequired,
   user: PropTypes.object,
   isAuthenticated: PropTypes.bool.isRequired,
