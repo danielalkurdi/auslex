@@ -12,27 +12,21 @@ from datetime import datetime, timedelta
 from passlib.hash import bcrypt
 from typing import List, Literal, Optional, Tuple
 from openai import OpenAI
-try:
-    from legal_corpus_lite import initialize_corpus, search_legal_provisions, find_specific_legal_provision, get_corpus_stats
-    LEGAL_CORPUS_AVAILABLE = True
-except ImportError as e:
-    print(f"Legal corpus not available: {e}")
-    LEGAL_CORPUS_AVAILABLE = False
-    initialize_corpus = lambda: None
-    search_legal_provisions = lambda query, top_k=10: []
-    find_specific_legal_provision = lambda citation: None
-    get_corpus_stats = lambda: {"status": "unavailable", "total_provisions": 0}
+# Disable all optional imports for serverless compatibility
+LEGAL_CORPUS_AVAILABLE = False
+AI_RESEARCH_AVAILABLE = False
 
-try:
-    from ai_research_engine import AdvancedLegalResearcher, ResearchContext, JurisdictionType, LegalAreaType
-    AI_RESEARCH_AVAILABLE = True
-except ImportError as e:
-    print(f"AI research engine not available: {e}")
-    AI_RESEARCH_AVAILABLE = False
-    AdvancedLegalResearcher = None
-    ResearchContext = None
-    JurisdictionType = None
-    LegalAreaType = None
+# Provide fallback functions
+initialize_corpus = lambda: None
+search_legal_provisions = lambda query, top_k=10: []
+find_specific_legal_provision = lambda citation: None
+get_corpus_stats = lambda: {"status": "unavailable", "total_provisions": 0, "message": "Running in serverless mode"}
+
+# AI research engine stubs
+AdvancedLegalResearcher = None
+ResearchContext = None
+JurisdictionType = None
+LegalAreaType = None
 
 app = FastAPI(title="AusLex AI API", version="2.0.0", description="World-class Australian Legal AI Platform")
 

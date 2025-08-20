@@ -1,5 +1,6 @@
 # Exclude heavy dependencies and unnecessary files
 api/legal_corpus.py
+api/legal_corpus_lite.py
 backend/
 requirements.txt
 demo_*.py
