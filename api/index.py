@@ -74,37 +74,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    """Health check endpoint"""
-    return {
-        "message": "AusLex AI API is running",
-        "version": "2.0.0",
-        "status": "healthy",
-        "features": {
-            "legal_corpus": LEGAL_CORPUS_AVAILABLE,
-            "ai_research": AI_RESEARCH_AVAILABLE
-        }
-    }
-
-@app.get("/api")
-async def api_root():
-    """API root endpoint"""
-    return {
-        "message": "AusLex AI API",
-        "version": "2.0.0",
-        "endpoints": [
-            "/api/chat",
-            "/api/auth/register",
-            "/api/auth/login",
-            "/api/legal/provision",
-            "/api/corpus/stats"
-        ],
-        "features": {
-            "legal_corpus": LEGAL_CORPUS_AVAILABLE,
-            "ai_research": AI_RESEARCH_AVAILABLE
-        }
-    }
+ 
 
 # Simple in-memory storage (use a database in production)
 users_db = {}
