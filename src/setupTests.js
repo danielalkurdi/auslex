@@ -20,6 +20,25 @@ if (!global.TextDecoder) {
   globalThis.TextDecoder = TextDecoder;
 }
 
+// Polyfill Web Streams API (TransformStream, ReadableStream, WritableStream) for Node/JSDOM
+try {
+  const { TransformStream, ReadableStream, WritableStream } = require('stream/web');
+  if (typeof global.TransformStream === 'undefined' && TransformStream) {
+    global.TransformStream = TransformStream;
+    globalThis.TransformStream = TransformStream;
+  }
+  if (typeof global.ReadableStream === 'undefined' && ReadableStream) {
+    global.ReadableStream = ReadableStream;
+    globalThis.ReadableStream = ReadableStream;
+  }
+  if (typeof global.WritableStream === 'undefined' && WritableStream) {
+    global.WritableStream = WritableStream;
+    globalThis.WritableStream = WritableStream;
+  }
+} catch (_) {
+  // If stream/web isn't available, leave as-is
+}
+
 // Import MSW server AFTER polyfills so interceptors can access TextEncoder/TextDecoder
 const { server } = require('./mocks/server');
 
