@@ -1,6 +1,9 @@
 services:
   frontend:
-    build: .
+    build:
+      context: .
+      args:
+        REACT_APP_API_ENDPOINT: http://localhost:8000
     ports:
       - "3000:80"
     environment:

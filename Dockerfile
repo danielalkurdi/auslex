@@ -6,8 +6,12 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Accept API endpoint at build time for CRA
+ARG REACT_APP_API_ENDPOINT
+ENV REACT_APP_API_ENDPOINT=${REACT_APP_API_ENDPOINT}
+
+# Install dependencies (need dev deps for CRA build)
+RUN npm ci
 
 # Copy source code
 COPY . .
