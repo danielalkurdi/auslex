@@ -221,9 +221,9 @@ const Sidebar = React.memo(({
       <div className="p-2 border-t border-border-subtle">
         <button 
           onClick={onAboutClick} 
-          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
-                     bg-button-secondary-bg text-button-secondary-text border-button-secondary-border
-                     hover:bg-button-secondary-hover hover:border-border-focus
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150
+                     bg-button-secondary-bg text-button-secondary-text
+                     hover:bg-button-secondary-hover
                      focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
           aria-label="About AusLex"
         >
@@ -232,9 +232,9 @@ const Sidebar = React.memo(({
         </button>
         <button 
           onClick={onSettingsClick} 
-          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
-                     bg-button-secondary-bg text-button-secondary-text border-button-secondary-border
-                     hover:bg-button-secondary-hover hover:border-border-focus
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150
+                     bg-button-secondary-bg text-button-secondary-text
+                     hover:bg-button-secondary-hover
                      focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
           aria-label="Open settings"
         >
@@ -244,9 +244,9 @@ const Sidebar = React.memo(({
         
         <button 
           onClick={onAdvancedResearchClick} 
-          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
-                     bg-accent-gold/10 text-accent-gold border-accent-gold/20
-                     hover:bg-accent-gold/20 hover:border-accent-gold/40
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150
+                     bg-accent-gold/10 text-accent-gold
+                     hover:bg-accent-gold/20
                      focus-visible:ring-2 focus-visible:ring-accent-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
           aria-label="Advanced Research"
         >
@@ -256,9 +256,9 @@ const Sidebar = React.memo(({
         
         <button 
           onClick={onCollaborationClick} 
-          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
-                     bg-button-secondary-bg text-button-secondary-text border-button-secondary-border
-                     hover:bg-button-secondary-hover hover:border-border-focus
+          className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150
+                     bg-button-secondary-bg text-button-secondary-text
+                     hover:bg-button-secondary-hover
                      focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
           aria-label="Collaboration"
         >
@@ -292,9 +292,9 @@ const Sidebar = React.memo(({
         ) : (
           <button 
             onClick={onAuthClick} 
-            className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
-                       bg-transparent text-accent border-accent
-                       hover:bg-accent/10 hover:border-accent-hover
+            className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150
+                       bg-transparent text-accent
+                       hover:bg-accent/10
                        focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
             aria-label="Sign in"
           >
