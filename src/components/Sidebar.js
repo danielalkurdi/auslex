@@ -131,9 +131,9 @@ const Sidebar = React.memo(({
               setIsMobileSidebarOpen(false);
             }
           }} 
-          className={`w-full flex items-center p-3 rounded-lg transition-all duration-150 border-1 
-                     bg-button-primary-bg text-button-primary-text border-button-primary-border
-                     hover:bg-button-primary-hover hover:border-accent-hover
+          className={`w-full flex items-center p-3 rounded-lg transition-all duration-150 
+                     bg-button-primary-bg text-button-primary-text
+                     hover:bg-button-primary-hover
                      focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary
                      ${!isMobile && isCollapsed ? 'justify-center' : 'gap-2'}`}
           aria-label="Start new chat"
@@ -279,9 +279,9 @@ const Sidebar = React.memo(({
             )}
             <button 
               onClick={onLogout} 
-              className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150 border-1
-                         bg-transparent text-status-warning border-status-warning
-                         hover:bg-status-warning/10 hover:border-status-warning
+              className="w-full flex items-center gap-2 p-3 rounded-lg transition-all duration-150
+                         bg-transparent text-status-warning
+                         hover:bg-status-warning/10
                          focus-visible:ring-2 focus-visible:ring-status-warning focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary"
               aria-label="Sign out"
             >
