@@ -8,9 +8,9 @@
  * - Citation accuracy validation
  */
 
-import { defineConfig, devices } from '@playwright/test';
+const { defineConfig, devices } = require('@playwright/test');
 
-export default defineConfig({
+module.exports = defineConfig({
   testDir: './e2e-tests',
   
   // Global test configuration
