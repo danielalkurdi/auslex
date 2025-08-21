@@ -36,6 +36,10 @@ Relevant code:
 - npm
 - Python 3.9+
 
+### Environment
+
+Copy `.env.example` to `.env` (frontend) and set required variables. For serverless/backend, export variables in your host (Vercel/Render/etc.).
+
 ### 1) Frontend setup
 
 ```bash
@@ -62,6 +66,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 Environment variables (optional):
 - `JWT_SECRET_KEY` — secret for signing JWTs
 - `ALLOWED_ORIGINS` — comma-separated origins (defaults to `http://localhost:3000,http://localhost:3001` in `api/index.py`; `backend/main.py` defaults to `http://localhost:3000`)
+- `OPENAI_API_KEY` — required for full OpenAI features
+- `OPENAI_BASE_URL`, `OPENAI_ORG`, `OPENAI_PROJECT` — optional advanced routing
 
 ### 2) Backend — Option B: Vercel serverless
 
