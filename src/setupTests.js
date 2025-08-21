@@ -6,6 +6,15 @@
  */
 
 import '@testing-library/jest-dom';
+// Polyfill TextEncoder/TextDecoder for Node test environment (MSW, interceptors)
+import { TextEncoder, TextDecoder } from 'util';
+if (!global.TextEncoder) {
+  global.TextEncoder = TextEncoder;
+}
+if (!global.TextDecoder) {
+  // utf-8 default to match browser behavior
+  global.TextDecoder = TextDecoder;
+}
 import { server } from './mocks/server';
 
 // Mock IntersectionObserver for React Testing Library
