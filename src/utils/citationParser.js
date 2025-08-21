@@ -68,6 +68,9 @@ export class CitationParser {
    * @returns {Array} Array of parsed citation objects
    */
   parseText(text, context = {}) {
+    if (typeof text !== 'string' || text.length === 0) {
+      return [];
+    }
     const citations = [];
     
     // Find case citations - square bracket format
@@ -145,8 +148,8 @@ export class CitationParser {
     // Remove overlapping citations (keep longer ones)
     const filteredCitations = this.removeOverlappingCitations(citations);
     
-    // Sort citations by position in text (reverse order for replacement)
-    filteredCitations.sort((a, b) => b.startIndex - a.startIndex);
+    // Sort citations by position in text (natural order for callers/tests)
+    filteredCitations.sort((a, b) => a.startIndex - b.startIndex);
     
     return filteredCitations;
   }
