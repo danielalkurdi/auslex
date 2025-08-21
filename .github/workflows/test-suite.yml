@@ -37,7 +37,12 @@ jobs:
       run: npm run lint --if-present
       
     - name: Run type checking
-      run: npx tsc --noEmit --if-present
+      run: |
+        if [ -f tsconfig.json ]; then
+          npx tsc --noEmit
+        else
+          echo "No tsconfig.json found; skipping TypeScript typecheck."
+        fi
       
     - name: Run unit tests with coverage
       run: npm run test:coverage
