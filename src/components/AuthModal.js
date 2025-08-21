@@ -109,7 +109,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-text-secondary mb-2">
                 Full Name
               </label>
               <div className="relative">
@@ -117,6 +117,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                 <input
                   type="text"
                   name="name"
+                  id="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 bg-background-primary border-1 border-border-subtle rounded-lg text-text-primary placeholder-text-placeholder focus:border-accent-focus transition-colors"
@@ -128,7 +129,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-2">
               Email Address
             </label>
             <div className="relative">
@@ -136,6 +137,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
               <input
                 type="email"
                 name="email"
+                id="email"
                 value={formData.email}
                 onChange={handleInputChange}
                 className="w-full pl-10 pr-4 py-3 bg-background-primary border-1 border-border-subtle rounded-lg text-text-primary placeholder-text-placeholder focus:border-accent-focus transition-colors"
@@ -146,7 +148,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-2">
               Password
             </label>
             <div className="relative">
@@ -154,6 +156,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="password"
+                id="password"
                 value={formData.password}
                 onChange={handleInputChange}
                 className="w-full pl-10 pr-12 py-3 bg-background-primary border-1 border-border-subtle rounded-lg text-text-primary placeholder-text-placeholder focus:border-accent-focus transition-colors"
@@ -164,6 +167,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-placeholder hover:text-text-primary transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -172,7 +176,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
 
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-text-secondary mb-2">
                 Confirm Password
               </label>
               <div className="relative">
@@ -180,6 +184,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="confirmPassword"
+                  id="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 bg-background-primary border-1 border-border-subtle rounded-lg text-text-primary placeholder-text-placeholder focus:border-accent-focus transition-colors"

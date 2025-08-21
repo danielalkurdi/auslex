@@ -9,41 +9,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { rest } from 'msw';
-import { setupServer } from 'msw/node';
+import { server } from '../../mocks/server';
 import AuthModal from '../AuthModal';
 
-// Mock server for API responses
-const server = setupServer(
-  rest.post('http://localhost:8000/auth/register', (req, res, ctx) => {
-    return res(
-      ctx.json({
-        access_token: 'mock-jwt-token',
-        user: {
-          id: '1',
-          email: 'test@example.com',
-          name: 'Test User'
-        }
-      })
-    );
-  }),
-
-  rest.post('http://localhost:8000/auth/login', (req, res, ctx) => {
-    return res(
-      ctx.json({
-        access_token: 'mock-jwt-token', 
-        user: {
-          id: '1',
-          email: 'test@example.com',
-          name: 'Test User'
-        }
-      })
-    );
-  })
-);
-
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+// Use global MSW server from setupTests; default handlers for auth endpoints
 
 describe('AuthModal - Authentication Security Flows', () => {
   const mockOnClose = jest.fn();
@@ -52,6 +21,37 @@ describe('AuthModal - Authentication Security Flows', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    // Ensure consistent auth responses across tests
+    server.use(
+      rest.post('http://localhost:8000/auth/register', async (req, res, ctx) => {
+        const body = typeof req.json === 'function' ? await req.json() : req.body || {};
+        return res(
+          ctx.status(201),
+          ctx.json({
+            access_token: 'mock-jwt-token',
+            user: {
+              id: '1',
+              email: body?.email || 'test@example.com',
+              name: body?.name || 'Test User'
+            }
+          })
+        );
+      }),
+      rest.post('http://localhost:8000/auth/login', async (req, res, ctx) => {
+        const body = typeof req.json === 'function' ? await req.json() : req.body || {};
+        return res(
+          ctx.status(200),
+          ctx.json({
+            access_token: 'mock-jwt-token',
+            user: {
+              id: '1',
+              email: body?.email || 'test@example.com',
+              name: 'Test User'
+            }
+          })
+        );
+      })
+    );
   });
 
   describe('User Registration Flow', () => {
