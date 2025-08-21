@@ -23,7 +23,7 @@ function AppContent() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [settings, setSettings] = useState({
-    apiEndpoint: process.env.REACT_APP_API_ENDPOINT || 'http://localhost:8000',
+    apiEndpoint: process.env.REACT_APP_API_ENDPOINT || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8000'),
     maxTokens: 2048,
     temperature: 0.7,
     topP: 0.9,
@@ -154,7 +154,7 @@ function AppContent() {
     setIsChatLoading(true);
 
     try {
-      const response = await fetch(`${settings.apiEndpoint}/chat`, {
+      const response = await fetch(`${settings.apiEndpoint}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

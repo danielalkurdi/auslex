@@ -1014,6 +1014,37 @@ class LegalMemoResponse(BaseModel):
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
+        # Check if OpenAI API key is configured
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            # Return a fallback response when OpenAI is not configured
+            response = """I'm currently running in demo mode without OpenAI integration configured. 
+
+Here's what I can help you with:
+
+**Australian Legal Information:**
+• Migration Act provisions (character test, visa requirements)
+• Fair Work Act provisions (unfair dismissal)  
+• Corporations Act provisions (directors' duties)
+
+**For full AI-powered legal assistance:**
+Please contact the administrator to configure the OpenAI API integration.
+
+**For official legal information:**
+• AustLII (austlii.edu.au) - Australian Legal Information Institute
+• Federal Register of Legislation (legislation.gov.au)
+
+*This information is for educational purposes only and does not constitute legal advice.*"""
+            
+            processing_time = 0.5
+            tokens_used = len(response.split()) + len(request.message.split())
+            
+            return ChatResponse(
+                response=response,
+                tokens_used=tokens_used,
+                processing_time=processing_time
+            )
+        
         # Simulate processing time
         processing_time = random.uniform(1.0, 3.0)
         time.sleep(processing_time)
@@ -1386,6 +1417,9 @@ def generate_lookup_key(act_name: str, year: str, jurisdiction: str, provision: 
     return f"{act_key}_{year}_{jurisdiction.lower()}_s_{provision.lower()}"
 
  
+
+# Export the app for Vercel serverless functions
+handler = app
 
 if __name__ == "__main__":
     import uvicorn
