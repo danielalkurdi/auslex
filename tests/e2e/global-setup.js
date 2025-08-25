@@ -18,13 +18,13 @@ async function globalSetup() {
     // Navigate to application
     await page.goto('http://localhost:3000');
     
-    // Wait for app to load
-    await page.waitForSelector('[data-testid="app-loaded"]', { 
+    // Wait for app to load - wait for main chat interface
+    await page.waitForSelector('textarea[aria-label="Type your legal question"]', { 
       timeout: 30000,
       state: 'attached'
     }).catch(() => {
-      // Fallback: wait for main content
-      return page.waitForSelector('main', { timeout: 10000 });
+      // Fallback: wait for any chat interface element
+      return page.waitForSelector('.h-full.flex.flex-col', { timeout: 10000 });
     });
     
     console.log('✅ Application successfully loaded');
@@ -46,7 +46,7 @@ async function setupAuthenticatedUser(page) {
     await page.goto('http://localhost:3000');
     
     // Open auth modal
-    await page.click('[data-testid="auth-button"]').catch(() => {
+    await page.click('[aria-label="Sign in"]').catch(() => {
       console.log('Auth button not found, skipping authenticated user setup');
       return;
     });
@@ -63,8 +63,8 @@ async function setupAuthenticatedUser(page) {
     // Submit registration
     await page.click('button[type="submit"]');
     
-    // Wait for successful authentication
-    await page.waitForSelector('[data-testid="user-menu"]', { timeout: 10000 });
+    // Wait for successful authentication - look for the sign out button
+    await page.waitForSelector('[aria-label="Sign out"]', { timeout: 10000 });
     
     // Save authentication state for reuse
     await page.context().storageState({ path: 'tests/e2e/auth-state.json' });
