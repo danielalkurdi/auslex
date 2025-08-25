@@ -4,30 +4,36 @@
  * Sets up MSW for testing environment to intercept and mock API calls.
  */
 
-import { setupServer } from 'msw/node';
-import { handlers } from './handlers.js';
+const { setupServer } = require('msw/node');
+const { handlers } = require('./handlers.js');
 
 // Setup MSW server with default handlers
-export const server = setupServer(...handlers);
+const server = setupServer(...handlers);
 
 // Server lifecycle for tests
-export const startServer = () => {
+const startServer = () => {
   server.listen({
     onUnhandledRequest: 'warn', // Warn about unmocked requests
   });
 };
 
-export const stopServer = () => {
+const stopServer = () => {
   server.close();
 };
 
-export const resetServerHandlers = () => {
+const resetServerHandlers = () => {
   server.resetHandlers();
 };
 
 // Helper to override handlers for specific tests
-export const useServerHandlers = (...newHandlers) => {
+const useServerHandlers = (...newHandlers) => {
   server.use(...newHandlers);
 };
 
-export default server;
+module.exports = {
+  server,
+  startServer,
+  stopServer,
+  resetServerHandlers,
+  useServerHandlers
+};

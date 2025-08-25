@@ -112,8 +112,8 @@ test.describe('Authentication Security Journey', () => {
     await page.goto('/');
     
     // Open authentication modal
-    await page.click('[data-testid="auth-button"]');
-    await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
+    await page.click('[aria-label="Sign in"]');
+    await expect(page.getByRole('heading', { name: /Welcome Back|Create Account/ })).toBeVisible();
     
     // Test user registration
     await page.click('text="Don\'t have an account? Sign up"');
@@ -148,7 +148,7 @@ test.describe('Authentication Security Journey', () => {
     await expect(page.locator('[data-testid="auth-button"]')).toBeVisible();
     
     // Test login with same credentials
-    await page.click('[data-testid="auth-button"]');
+    await page.click('[aria-label="Sign in"]');
     await page.fill('[name="email"]', testUser.email);
     await page.fill('[name="password"]', testUser.password);
     await page.click('button[type="submit"]');
@@ -161,7 +161,7 @@ test.describe('Authentication Security Journey', () => {
   test('should handle authentication errors securely', async ({ page }) => {
     await page.goto('/');
     
-    await page.click('[data-testid="auth-button"]');
+    await page.click('[aria-label="Sign in"]');
     
     // Test invalid login credentials
     await page.fill('[name="email"]', 'nonexistent@example.com');
@@ -172,7 +172,7 @@ test.describe('Authentication Security Journey', () => {
     await expect(page.getByText(/Invalid email or password|Authentication failed/)).toBeVisible();
     
     // Should remain on login modal
-    await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Welcome Back|Create Account/ })).toBeVisible();
     
     // Should clear password field for security
     await expect(page.locator('[name="password"]')).toHaveValue('');
@@ -181,7 +181,7 @@ test.describe('Authentication Security Journey', () => {
   test('should persist authentication across sessions', async ({ page, context }) => {
     // First session - login
     await page.goto('/');
-    await page.click('[data-testid="auth-button"]');
+    await page.click('[aria-label="Sign in"]');
     await page.click('text="Don\'t have an account? Sign up"');
     
     const testUser = {

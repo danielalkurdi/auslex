@@ -201,7 +201,7 @@ OPENAI_BASE_URL=<custom-url>             # Optional OpenAI routing
 - **Vercel Function Timeout**: Check Python runtime version in `vercel.json`
 - **CORS Errors**: Verify `ALLOWED_ORIGINS` environment variable
 - **Citation Links Broken**: Check AustLII service availability
-- **Build Failures**: Ensure all dependencies in package.json, api/requirements.txt, and backend/requirements.txt
+- **Build Failures**: Ensure all dependencies in package.json and requirements.txt
 
 ### Performance Notes
 - Frontend build outputs to `build/` directory

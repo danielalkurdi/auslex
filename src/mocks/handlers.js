@@ -5,7 +5,7 @@
  * Uses authentic legal content for accuracy testing.
  */
 
-import { rest } from 'msw';
+const { rest } = require('msw');
 
 // Mock legal responses with real Australian legal citations
 const MOCK_LEGAL_RESPONSES = {
@@ -75,7 +75,7 @@ The High Court in Kioa v West (1985) 159 CLR 550 established that procedural fai
   }
 };
 
-export const handlers = [
+const handlers = [
   // Authentication endpoints
   rest.post('http://localhost:8000/auth/register', (req, res, ctx) => {
     const { email, password, name } = req.body;
@@ -296,15 +296,15 @@ For comprehensive analysis, I recommend reviewing the primary sources and consid
 ];
 
 // Export specific handlers for individual test customization
-export const authHandlers = handlers.filter(handler => 
+const authHandlers = handlers.filter(handler => 
   handler.info?.path?.includes('auth')
 );
 
-export const chatHandlers = handlers.filter(handler => 
+const chatHandlers = handlers.filter(handler => 
   handler.info?.path?.includes('chat') || handler.info?.path?.includes('rag')
 );
 
-export const errorHandlers = [
+const errorHandlers = [
   rest.post('http://localhost:8000/chat', (req, res, ctx) => {
     return res(
       ctx.status(500),
@@ -320,4 +320,9 @@ export const errorHandlers = [
   })
 ];
 
-export default handlers;
+module.exports = {
+  handlers,
+  authHandlers,
+  chatHandlers,
+  errorHandlers
+};

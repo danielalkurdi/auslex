@@ -10,8 +10,41 @@ import os
 import secrets
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
-from typing import List, Literal, Optional, Tuple
+from typing import List, Literal, Optional, Tuple, Dict, Any
 from openai import OpenAI
+import logging
+
+logger = logging.getLogger(__name__)
+# Import new AI capabilities
+try:
+    from .vector_search_engine import (
+        get_vector_search_engine,
+        get_legal_rag,
+        vector_search_provisions,
+        answer_legal_question,
+        SearchMethod
+    )
+    VECTOR_SEARCH_AVAILABLE = True
+except ImportError:
+    VECTOR_SEARCH_AVAILABLE = False
+    get_vector_search_engine = lambda: None
+    get_legal_rag = lambda: None
+    vector_search_provisions = lambda query, **kwargs: []
+    answer_legal_question = lambda query, **kwargs: {"answer": "Vector search not available"}
+
+try:
+    from .legal_compliance import (
+        validate_legal_response,
+        enhance_legal_response,
+        get_compliance_validator
+    )
+    COMPLIANCE_AVAILABLE = True
+except ImportError:
+    COMPLIANCE_AVAILABLE = False
+    validate_legal_response = lambda response, query, **kwargs: {"overall_compliance": "unknown"}
+    enhance_legal_response = lambda response, query, **kwargs: response
+    get_compliance_validator = lambda: None
+
 # Disable all optional imports for serverless compatibility
 LEGAL_CORPUS_AVAILABLE = False
 AI_RESEARCH_AVAILABLE = False
@@ -108,11 +141,18 @@ class ChatRequest(BaseModel):
     enable_web_search: bool = True
     web_search_depth: Literal["basic", "advanced"] = "basic"
     web_search_k: int = 5
+    enable_vector_search: bool = True
+    enable_compliance_check: bool = True
+    search_method: str = "hybrid"  # "vector_only", "hybrid", "bm25_fallback"
 
 class ChatResponse(BaseModel):
     response: str
     tokens_used: int
     processing_time: float
+    search_method_used: Optional[str] = None
+    compliance_level: Optional[str] = None
+    confidence_score: Optional[float] = None
+    enhanced_with_compliance: Optional[bool] = False
 
 class EmbeddingRequest(BaseModel):
     texts: List[str]
@@ -1043,14 +1083,21 @@ Please contact the administrator to configure the OpenAI API integration.
 
 Click on any of the highlighted citations above to see a popup displaying the actual AustLII content. This demonstrates direct integration with AustLII's database showing real Australian legal provisions and cases."""
         else:
-            # Use enhanced OpenAI chat with legal database integration
-            response = _chat_with_openai_enhanced(
+            # Use enhanced OpenAI chat with AI vector search and compliance validation
+            result = await _chat_with_openai_enhanced(
                 message=request.message,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
                 top_p=request.top_p,
                 enable_web_search=request.enable_web_search,
+                enable_vector_search=request.enable_vector_search,
+                enable_compliance_check=request.enable_compliance_check,
+                search_method=request.search_method
             )
+            response = result['response']
+            search_method_used = result.get('search_method_used')
+            compliance_validation = result.get('compliance_validation', {})
+            enhanced_with_compliance = result.get('enhanced_with_compliance', False)
         
         # Calculate approximate tokens used
         tokens_used = len(response.split()) + len(request.message.split())
@@ -1058,7 +1105,11 @@ Click on any of the highlighted citations above to see a popup displaying the ac
         return ChatResponse(
             response=response,
             tokens_used=tokens_used,
-            processing_time=processing_time
+            processing_time=processing_time,
+            search_method_used=locals().get('search_method_used'),
+            compliance_level=compliance_validation.get('overall_compliance', 'unknown').replace('_', ' ').title() if compliance_validation else None,
+            confidence_score=compliance_validation.get('confidence_score') if compliance_validation else None,
+            enhanced_with_compliance=locals().get('enhanced_with_compliance', False)
         )
         
     except Exception as e:

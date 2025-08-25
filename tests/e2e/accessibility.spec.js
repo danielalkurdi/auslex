@@ -6,19 +6,16 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { injectAxe, checkA11y } from '@axe-core/playwright';
+import { AxeBuilder } from '@axe-core/playwright';
 
 test.describe('Accessibility Compliance', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await injectAxe(page);
   });
 
   test('should meet WCAG 2.1 AA standards on main page', async ({ page }) => {
-    await checkA11y(page, null, {
-      detailedReport: true,
-      detailedReportOptions: { html: true }
-    });
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test('should have proper keyboard navigation', async ({ page }) => {
@@ -34,11 +31,11 @@ test.describe('Accessibility Compliance', () => {
   });
 
   test('should have sufficient color contrast', async ({ page }) => {
-    await checkA11y(page, null, {
-      rules: {
-        'color-contrast': { enabled: true }
-      }
-    });
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .include('body')
+      .withRules(['color-contrast'])
+      .analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test('should support screen readers with proper ARIA labels', async ({ page }) => {
@@ -51,7 +48,10 @@ test.describe('Accessibility Compliance', () => {
     await expect(h1).toBeVisible();
     
     // Verify no accessibility violations in interactive elements
-    await checkA11y(page, '[role="button"], [role="textbox"], [role="link"]');
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .include('[role="button"], [role="textbox"], [role="link"]')
+      .analyze();
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
   test('should handle focus management in modals', async ({ page }) => {
