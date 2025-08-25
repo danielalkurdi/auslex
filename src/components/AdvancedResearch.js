@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Search, FileText, Users, Brain, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Brain, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 
 const AdvancedResearch = ({ onClose }) => {
   const [query, setQuery] = useState('');
