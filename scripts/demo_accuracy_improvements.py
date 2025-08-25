@@ -6,7 +6,11 @@ with improved accuracy against a basic system.
 
 import sys
 import os
-sys.path.append('api')
+from pathlib import Path
+
+# Ensure imports resolve from project root `api/`
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'api'))
 
 # Add environment variables for testing
 os.environ['OPENAI_API_KEY'] = 'demo-key'  # Mock for demonstration

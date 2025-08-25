@@ -6,9 +6,11 @@ Test script for the comprehensive Australian Legal Corpus integration
 import os
 import sys
 import time
+from pathlib import Path
 
-# Add the api directory to the path so we can import the modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'api'))
+# Add the project root api directory to the path
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'api'))
 
 def test_corpus_initialization():
     """Test corpus initialization"""

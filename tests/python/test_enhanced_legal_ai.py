@@ -5,8 +5,11 @@ This script tests the comprehensive improvements to response accuracy.
 """
 
 import sys
-import os
-sys.path.append('api')
+from pathlib import Path
+
+# Ensure imports resolve from project root `api/`
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'api'))
 
 # Add environment variables for testing
 os.environ['OPENAI_API_KEY'] = 'test-key'  # Mock for testing

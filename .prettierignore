@@ -1,0 +1,7 @@
+build/
+node_modules/
+coverage/
+test-results/
+playwright-report/
+*.min.js
+*.bundle.js

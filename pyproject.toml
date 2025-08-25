@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+include = "\\.pyi?$"
+exclude = "(node_modules|build|dist|.venv|.git)"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = [
+  "E",  # pycodestyle (errors)
+  "F",  # pyflakes
+  "I",  # isort
+]
+ignore = [
+  "E203",  # whitespace before ':' (black compatibility)
+  "E501"   # line length handled by formatter
+]
+exclude = ["node_modules", "build", "dist", ".venv", ".git"]
+
+[tool.ruff.isort]
+known-first-party = ["api", "backend"]
+combine-as-imports = true
