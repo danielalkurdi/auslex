@@ -5,9 +5,11 @@ Simple test for legal corpus integration - tests the basic structure
 
 import os
 import sys
+from pathlib import Path
 
-# Add the api directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'api'))
+# Add the project root api directory to the path
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'api'))
 
 def test_import():
     """Test that we can import the legal corpus module"""

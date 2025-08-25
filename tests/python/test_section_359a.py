@@ -5,9 +5,11 @@ Test script specifically for section 359A functionality
 
 import os
 import sys
+from pathlib import Path
 
-# Add the api directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'api'))
+# Add the project root api directory to the path
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'api'))
 
 def test_section_359a_search():
     """Test searching for section 359A"""

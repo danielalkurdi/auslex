@@ -38,7 +38,7 @@ Relevant code:
 
 ### Environment
 
-Copy `.env.example` to `.env` (frontend) and set required variables. For serverless/backend, export variables in your host (Vercel/Render/etc.).
+Copy `.env.example` to `.env` (frontend) and set required variables. For serverless/backend, export variables in your host (Vercel/Render/etc.). Do not commit `.env*` files or secrets; use `.env.example` as the template.
 
 ### 1) Frontend setup
 
@@ -215,3 +215,16 @@ PRs welcome. Please:
 3) Add tests or thorough manual validation
 4) Open a pull request
 
+---
+
+## Repository Layout
+
+- `src/` — React app code (components, contexts, services, utils, styles)
+- `backend/` — Standalone FastAPI app (`main.py`)
+- `api/` — Vercel serverless FastAPI entry (`index.py`)
+- `tests/e2e/` — Playwright end-to-end tests (see `playwright.config.js`)
+- `scripts/` — Utility scripts (API smoke tests, demo helpers)
+- `docs/` — Additional documentation (deployment, optimization, integration guides)
+
+### Documentation
+- See `docs/README.md` for an index of deployment, integration, and optimization guides now located under `docs/`.

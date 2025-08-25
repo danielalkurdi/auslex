@@ -3,12 +3,14 @@
 Simple test script to verify enhanced legal assistant functionality with database integration
 """
 import os
+from pathlib import Path
 from openai import OpenAI
 
 # Load environment variables from .env file
 def load_env():
     try:
-        with open('.env', 'r') as f:
+        root = Path(__file__).resolve().parents[2]
+        with open(root / '.env', 'r') as f:
             for line in f:
                 if '=' in line and not line.startswith('#'):
                     key, value = line.strip().split('=', 1)

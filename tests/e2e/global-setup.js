@@ -67,7 +67,7 @@ async function setupAuthenticatedUser(page) {
     await page.waitForSelector('[data-testid="user-menu"]', { timeout: 10000 });
     
     // Save authentication state for reuse
-    await page.context().storageState({ path: 'e2e-tests/auth-state.json' });
+    await page.context().storageState({ path: 'tests/e2e/auth-state.json' });
     
     console.log('✅ Authenticated user state created');
     
