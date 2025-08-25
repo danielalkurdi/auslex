@@ -7,7 +7,7 @@ const CollaborationPanel = ({ onClose, currentUser }) => {
   const [activeParticipants, setActiveParticipants] = useState([]);
   const [sharedDocuments, setSharedDocuments] = useState([]);
   const [annotations, setAnnotations] = useState([]);
-  const [collaborationSocket, setCollaborationSocket] = useState(null);
+  const [collaborationSocket] = useState(null);
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
